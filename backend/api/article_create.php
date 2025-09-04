@@ -48,6 +48,7 @@ try {
 // ====== 2️⃣ Leer datos de FormData ======
 $title = $_POST['title'] ?? null;
 $tags = $_POST['tags'] ?? null;
+$description = $_POST['description'] ?? '';
 $contenido = isset($_POST['contenido']) ? json_decode($_POST['contenido'], true) : [];
 
 // ====== 3️⃣ Validar campos obligatorios ======
@@ -89,12 +90,18 @@ unset($bloque);
 
 
 // ====== 6️⃣ Insertar en DB ======
-$stmt = $conn->prepare("INSERT INTO articles (title, tags, banner, contenido) VALUES (:title, :tags, :banner, :contenido)");
+$stmt = $conn->prepare("
+    INSERT INTO articles (title, tags, banner, description, contenido) 
+    VALUES (:title, :tags, :banner, :description, :contenido)
+");
+
 $stmt->bindParam(":title", $title);
 $stmt->bindParam(":tags", $tags);
 $stmt->bindParam(":banner", $bannerPath);
+$stmt->bindParam(":description", $description); // <-- nuevo bind
 $contenidoJson = json_encode($contenido);
 $stmt->bindParam(":contenido", $contenidoJson);
+
 
 try {
     $stmt->execute();

@@ -1,0 +1,16 @@
+# Node / React
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+
+# PHP / Backend
+backend/uploads/
+backend/vendor/
+backend/*.log
+backend/.env
+
+# Sistema
+.DS_Store
+.vscode/
+.idea/

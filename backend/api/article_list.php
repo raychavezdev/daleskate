@@ -5,7 +5,7 @@ header("Content-Type: application/json; charset=UTF-8");
 require_once("../config/db.php");
 
 try {
-    $query = "SELECT id, title, banner, tags, created_at FROM articles ORDER BY created_at DESC LIMIT 10";
+    $query = "SELECT id, title, banner, tags, description, created_at FROM articles ORDER BY created_at DESC LIMIT 10";
     $stmt = $conn->prepare($query);
     $stmt->execute();
 
