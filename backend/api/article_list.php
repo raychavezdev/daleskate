@@ -5,7 +5,13 @@ header("Content-Type: application/json; charset=UTF-8");
 require_once("../config/db.php");
 
 try {
-    $query = "SELECT id, title, banner, tags, description, created_at FROM articles ORDER BY created_at DESC LIMIT 10";
+    $excludeBanner = isset($_GET['exclude_banner']) && $_GET['exclude_banner'] == 1;
+
+    $query = "SELECT id, title, banner, tags, description, created_at, is_banner FROM articles";
+    if ($excludeBanner) {
+        $query .= " WHERE is_banner = 0";
+    }
+    $query .= " ORDER BY created_at DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
 

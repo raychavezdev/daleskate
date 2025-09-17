@@ -44,18 +44,16 @@ if (!$user || !password_verify($password, $user['password'])) {
 
 // Crear JWT
 $secret_key = "TU_SECRET_KEY_AQUI";
-$issuedAt = time();
-$expire = $issuedAt + 3600 * 12;
 
 $payload = [
-    "iat" => $issuedAt,
-    "exp" => $expire,
+    "iat" => time(),
     "data" => [
         "id" => $user["id"],
         "username" => $user["username"],
         "role" => $user["role"]
     ]
 ];
+
 
 $jwt = JWT::encode($payload, $secret_key, "HS256");
 
