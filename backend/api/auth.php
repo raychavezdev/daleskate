@@ -45,7 +45,7 @@ if (!$user || !password_verify($password, $user['password'])) {
 // Crear JWT
 $secret_key = "TU_SECRET_KEY_AQUI";
 $issuedAt = time();
-$expire = $issuedAt + 3600; // 1 hora
+$expire = $issuedAt + 3600 * 12;
 
 $payload = [
     "iat" => $issuedAt,

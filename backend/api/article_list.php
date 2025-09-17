@@ -11,15 +11,6 @@ try {
 
     $articulos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 🔑 URL base (ajusta según tu entorno)
-    $baseUrl = "http://localhost/daleskate/backend/";
-
-    // Recorremos y actualizamos el campo banner
-    foreach ($articulos as &$articulo) {
-        if (!empty($articulo['banner'])) {
-            $articulo['banner'] = $baseUrl . $articulo['banner'];
-        }
-    }
 
     echo json_encode($articulos);
 } catch (PDOException $e) {

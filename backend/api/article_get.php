@@ -27,12 +27,7 @@ try {
     $articulo = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($articulo) {
-        $baseUrl = "http://127.0.0.1/daleskate/backend/";
 
-        // Banner
-        if (!empty($articulo['banner'])) {
-            $articulo['banner'] = $baseUrl . $articulo['banner'];
-        }
 
         // Contenido dinámico
         if (!empty($articulo['contenido'])) {
