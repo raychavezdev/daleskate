@@ -1,21 +1,12 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Credentials: true");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-require_once "../vendor/autoload.php";
+// ✅ Cargar CORS + conexión DB (aunque no use DB, headers.php maneja CORS)
+require_once __DIR__ . "/../config/headers.php";
+require_once __DIR__ . "/../vendor/autoload.php";
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-$secret_key = "TU_SECRET_KEY_AQUI";
-
+// ====== 1️⃣ Obtener token ======
 $headers = getallheaders();
 if (!isset($headers['Authorization'])) {
     http_response_code(401);
@@ -31,6 +22,9 @@ if ($type !== "Bearer" || !$token) {
     echo json_encode(["error" => "Token inválido"]);
     exit;
 }
+
+// ====== 2️⃣ Validar JWT ======
+$secret_key = $_ENV["SECRET_KEY"]; // Desde .env
 
 try {
     $decoded = JWT::decode($token, new Key($secret_key, 'HS256'));

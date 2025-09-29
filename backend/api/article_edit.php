@@ -1,17 +1,7 @@
 <?php
-// --- CORS ---
-header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Credentials: true");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-require_once "../config/db.php";
-require_once "../vendor/autoload.php";
+// ✅ Cargar CORS + conexión DB
+require_once __DIR__ . "/../config/headers.php";
+require_once __DIR__ . "/../vendor/autoload.php";
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -35,7 +25,8 @@ if ($type !== "Bearer" || !$token) {
     exit;
 }
 
-$secret_key = "TU_SECRET_KEY_AQUI";
+// ✅ SECRET_KEY desde .env
+$secret_key = $_ENV["SECRET_KEY"];
 
 try {
     $decoded = JWT::decode($token, new Key($secret_key, 'HS256'));
@@ -78,20 +69,18 @@ $currentContenido = json_decode($article['contenido'], true);
 $bannerUrl = $currentBanner;
 if (isset($_FILES['banner'])) {
     $banner = $_FILES['banner'];
-    $bannerDir = "../uploads/banners/";
+    $bannerDir = __DIR__ . "/../uploads/banners/";
     if (!is_dir($bannerDir)) mkdir($bannerDir, 0777, true);
 
     $bannerName = time() . "_" . basename($banner['name']);
     $bannerPath = $bannerDir . $bannerName;
-
     move_uploaded_file($banner['tmp_name'], $bannerPath);
 
-    // Guardar solo la ruta relativa
     $bannerUrl = "uploads/banners/" . rawurlencode($bannerName);
 }
 
-// ====== 5️⃣ Guardar imágenes del contenido ======
-$articleFolder = "../uploads/articles/" . $id . "/";
+// ====== 5️⃣ Guardar imágenes/videos del contenido ======
+$articleFolder = __DIR__ . "/../uploads/articles/" . $id . "/";
 if (!is_dir($articleFolder)) mkdir($articleFolder, 0777, true);
 
 foreach ($contenido as $i => &$bloque) {
@@ -110,7 +99,6 @@ foreach ($contenido as $i => &$bloque) {
             $filePath = $articleFolder . $fileName;
             move_uploaded_file($file['tmp_name'], $filePath);
 
-            // Guardar solo la ruta relativa
             $bloque['valor'] = "uploads/articles/" . $id . "/" . rawurlencode($fileName);
         } elseif (isset($currentContenido[$i]['valor'])) {
             $bloque['valor'] = $currentContenido[$i]['valor'];
@@ -132,7 +120,6 @@ foreach ($contenido as $i => &$bloque) {
             $filePath = $articleFolder . $fileName;
             move_uploaded_file($file['tmp_name'], $filePath);
 
-            // Guardar solo la ruta relativa
             $bloque['preview'] = "uploads/articles/" . $id . "/" . rawurlencode($fileName);
         } elseif (isset($currentContenido[$i]['preview'])) {
             $bloque['preview'] = $currentContenido[$i]['preview'];
@@ -162,7 +149,6 @@ $stmt->bindParam(":description", $description);
 
 $contenidoJson = json_encode($contenido);
 $stmt->bindParam(":contenido", $contenidoJson);
-
 $stmt->bindParam(":is_banner", $is_banner, PDO::PARAM_INT);
 
 try {

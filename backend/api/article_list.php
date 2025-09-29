@@ -1,10 +1,9 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Content-Type: application/json; charset=UTF-8");
-
-require_once("../config/db.php");
+// ✅ Cargar CORS + conexión DB
+require_once __DIR__ . "/../config/headers.php";
 
 try {
+    // Revisar si se debe excluir el banner
     $excludeBanner = isset($_GET['exclude_banner']) && $_GET['exclude_banner'] == 1;
 
     $query = "SELECT id, title, banner, tags, description, created_at, is_banner FROM articles";
@@ -12,14 +11,22 @@ try {
         $query .= " WHERE is_banner = 0";
     }
     $query .= " ORDER BY created_at DESC";
+
     $stmt = $conn->prepare($query);
     $stmt->execute();
-
     $articulos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Opcional: agregar URL completa a los banners
+    foreach ($articulos as &$articulo) {
+        if (!empty($articulo['banner'])) {
+            // Por ejemplo, si quieres rutas absolutas
+            // $articulo['banner'] = $_ENV['FRONTEND_URL'] . '/' . $articulo['banner'];
+        }
+    }
+    unset($articulo);
 
     echo json_encode($articulos);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["error" => "Error al obtener artículos: " . $e->getMessage()]);
+    echo json_encode(["error" => "Error al obtener artículos", "detail" => $e->getMessage()]);
 }

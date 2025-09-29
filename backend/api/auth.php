@@ -1,25 +1,11 @@
 <?php
-// Mostrar errores mientras depuras
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// CORS
-header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Credentials: true");
-
-// Preflight request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-require_once "../config/db.php";
-require_once "../vendor/autoload.php"; // JWT
+// ✅ Cargar CORS + conexión DB
+require_once __DIR__ . "/../config/headers.php";
+require_once __DIR__ . "/../vendor/autoload.php"; // JWT
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
-// Leer datos del body
+// ====== 1️⃣ Leer datos del body ======
 $data = json_decode(file_get_contents("php://input"));
 $username = $data->username ?? null;
 $password = $data->password ?? null;
@@ -30,7 +16,7 @@ if (!$username || !$password) {
     exit;
 }
 
-// Buscar usuario en DB
+// ====== 2️⃣ Buscar usuario en DB ======
 $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username LIMIT 1");
 $stmt->bindParam(":username", $username);
 $stmt->execute();
@@ -42,8 +28,8 @@ if (!$user || !password_verify($password, $user['password'])) {
     exit;
 }
 
-// Crear JWT
-$secret_key = "TU_SECRET_KEY_AQUI";
+// ====== 3️⃣ Crear JWT ======
+$secret_key = $_ENV["SECRET_KEY"]; // Desde .env
 
 $payload = [
     "iat" => time(),
@@ -54,10 +40,9 @@ $payload = [
     ]
 ];
 
-
 $jwt = JWT::encode($payload, $secret_key, "HS256");
 
-// Respuesta limpia
+// ====== 4️⃣ Responder ======
 echo json_encode([
     "message" => "Login exitoso",
     "token" => $jwt
