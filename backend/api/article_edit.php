@@ -84,8 +84,10 @@ if (isset($_FILES['banner'])) {
     $bannerName = time() . "_" . basename($banner['name']);
     $bannerPath = $bannerDir . $bannerName;
 
-    $bannerUrl = "http://localhost/daleskate/backend/uploads/banners/" . rawurlencode($bannerName);
     move_uploaded_file($banner['tmp_name'], $bannerPath);
+
+    // Guardar solo la ruta relativa
+    $bannerUrl = "uploads/banners/" . rawurlencode($bannerName);
 }
 
 // ====== 5️⃣ Guardar imágenes del contenido ======
@@ -108,7 +110,8 @@ foreach ($contenido as $i => &$bloque) {
             $filePath = $articleFolder . $fileName;
             move_uploaded_file($file['tmp_name'], $filePath);
 
-            $bloque['valor'] = "http://localhost/daleskate/backend/uploads/articles/" . $id . "/" . rawurlencode($fileName);
+            // Guardar solo la ruta relativa
+            $bloque['valor'] = "uploads/articles/" . $id . "/" . rawurlencode($fileName);
         } elseif (isset($currentContenido[$i]['valor'])) {
             $bloque['valor'] = $currentContenido[$i]['valor'];
         }
@@ -129,7 +132,8 @@ foreach ($contenido as $i => &$bloque) {
             $filePath = $articleFolder . $fileName;
             move_uploaded_file($file['tmp_name'], $filePath);
 
-            $bloque['preview'] = "http://localhost/daleskate/backend/uploads/articles/" . $id . "/" . rawurlencode($fileName);
+            // Guardar solo la ruta relativa
+            $bloque['preview'] = "uploads/articles/" . $id . "/" . rawurlencode($fileName);
         } elseif (isset($currentContenido[$i]['preview'])) {
             $bloque['preview'] = $currentContenido[$i]['preview'];
         }

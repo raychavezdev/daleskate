@@ -4,6 +4,7 @@ $db_name = "daleskate";     // nombre de tu base de datos
 $username = "root";         // tu usuario de MySQL
 $password = "";             // tu contraseña de MySQL
 
+
 // Clave secreta para JWT
 define("SECRET_KEY", "mi_clave_ultra_secreta_2025");
 

@@ -58,26 +58,27 @@ if (!$title || !$tags) {
     exit;
 }
 
-// ====== 3️⃣ Guardar banner ======
+// ====== 3️⃣ Generar ID único para las carpetas ======
+$articleId = time(); // siempre el mismo para este artículo
+
+// ====== 4️⃣ Guardar banner ======
 $bannerUrl = null;
 if (isset($_FILES['banner'])) {
     $banner = $_FILES['banner'];
     $bannerDir = "../uploads/banners/";
     if (!is_dir($bannerDir)) mkdir($bannerDir, 0777, true);
 
-    $bannerName = time() . "_" . basename($banner['name']);
-
-    // Ruta en disco (para mover el archivo físicamente)
+    $bannerName = $articleId . "_" . basename($banner['name']);
     $bannerPath = $bannerDir . $bannerName;
 
-    // URL pública (para guardar en DB y usar en React)
-    $bannerUrl = "http://localhost/daleskate/backend/uploads/banners/" . rawurlencode($bannerName);
+    // 🚀 Solo ruta relativa
+    $bannerUrl = "uploads/banners/" . rawurlencode($bannerName);
 
     move_uploaded_file($banner['tmp_name'], $bannerPath);
 }
 
-// ====== 4️⃣ Guardar imágenes del contenido ======
-$articleFolder = "../uploads/articles/" . time() . "/";
+// ====== 5️⃣ Guardar imágenes del contenido ======
+$articleFolder = "../uploads/articles/" . $articleId . "/";
 if (!is_dir($articleFolder)) mkdir($articleFolder, 0777, true);
 
 foreach ($contenido as $i => &$bloque) {
@@ -92,12 +93,12 @@ foreach ($contenido as $i => &$bloque) {
                 echo json_encode(["error" => "Formato de imagen no permitido ($ext)"]);
                 exit;
             }
-            $fileName = time() . "_{$i}_" . basename($file['name']);
+            $fileName = $articleId . "_{$i}_" . basename($file['name']);
             $filePath = $articleFolder . $fileName;
             move_uploaded_file($file['tmp_name'], $filePath);
 
-            // URL pública
-            $bloque['valor'] = "http://localhost/daleskate/backend/uploads/articles/" . time() . "/" . rawurlencode($fileName);
+            // 🚀 Ruta relativa
+            $bloque['valor'] = "uploads/articles/" . $articleId . "/" . rawurlencode($fileName);
         }
     }
 
@@ -112,12 +113,12 @@ foreach ($contenido as $i => &$bloque) {
                 echo json_encode(["error" => "Formato de miniatura no permitido ($ext)"]);
                 exit;
             }
-            $fileName = time() . "_thumb_" . basename($file['name']);
+            $fileName = $articleId . "_thumb_" . basename($file['name']);
             $filePath = $articleFolder . $fileName;
             move_uploaded_file($file['tmp_name'], $filePath);
 
-            // URL pública
-            $bloque['preview'] = "http://localhost/daleskate/backend/uploads/articles/" . time() . "/" . rawurlencode($fileName);
+            // 🚀 Ruta relativa
+            $bloque['preview'] = "uploads/articles/" . $articleId . "/" . rawurlencode($fileName);
         } else {
             $bloque['preview'] = $bloque['preview'] ?? "";
         }
@@ -125,13 +126,13 @@ foreach ($contenido as $i => &$bloque) {
 }
 unset($bloque);
 
-// ====== 5️⃣ Flag banner único ======
+// ====== 6️⃣ Flag banner único ======
 $is_banner = isset($_POST['is_banner']) ? (int)$_POST['is_banner'] : 0;
 if ($is_banner === 1) {
     $conn->exec("UPDATE articles SET is_banner = 0 WHERE is_banner = 1");
 }
 
-// ====== 6️⃣ Insertar en DB ======
+// ====== 7️⃣ Insertar en DB ======
 $stmt = $conn->prepare("
     INSERT INTO articles (title, tags, banner, description, contenido, is_banner)
     VALUES (:title, :tags, :banner, :description, :contenido, :is_banner)
@@ -146,6 +147,9 @@ $contenidoJson = json_encode($contenido);
 $stmt->bindParam(":contenido", $contenidoJson);
 
 $stmt->bindParam(":is_banner", $is_banner, PDO::PARAM_INT);
+
+// 🔎 Debug antes de guardar
+// var_dump($bannerUrl, $contenidoJson); exit;
 
 try {
     $stmt->execute();
