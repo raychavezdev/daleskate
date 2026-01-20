@@ -25,7 +25,6 @@ if ($type !== "Bearer" || !$token) {
     exit;
 }
 
-// ✅ SECRET_KEY desde .env
 $secret_key = $_ENV["SECRET_KEY"];
 
 try {
@@ -51,7 +50,7 @@ if (!$id || !$title || !$tags) {
 }
 
 // ====== 3️⃣ Obtener artículo actual ======
-$stmt = $conn->prepare("SELECT banner, contenido FROM articles WHERE id = :id");
+$stmt = $conn->prepare("SELECT banner, banner_mobile, contenido FROM articles WHERE id = :id");
 $stmt->bindParam(":id", $id, PDO::PARAM_INT);
 $stmt->execute();
 $article = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -63,9 +62,12 @@ if (!$article) {
 }
 
 $currentBanner = $article['banner'];
+$currentBannerMobile = $article['banner_mobile'];
 $currentContenido = json_decode($article['contenido'], true);
 
-// ====== 4️⃣ Banner ======
+// ====== 4️⃣ Procesar banners ======
+
+// Banner Desktop
 $bannerUrl = $currentBanner;
 if (isset($_FILES['banner'])) {
     $banner = $_FILES['banner'];
@@ -77,6 +79,20 @@ if (isset($_FILES['banner'])) {
     move_uploaded_file($banner['tmp_name'], $bannerPath);
 
     $bannerUrl = "uploads/banners/" . rawurlencode($bannerName);
+}
+
+// Banner Mobile
+$bannerMobileUrl = $currentBannerMobile;
+if (isset($_FILES['banner_mobile'])) {
+    $bannerMobile = $_FILES['banner_mobile'];
+    $bannerDir = __DIR__ . "/../uploads/banners/";
+    if (!is_dir($bannerDir)) mkdir($bannerDir, 0777, true);
+
+    $bannerMobileName = time() . "_mobile_" . basename($bannerMobile['name']);
+    $bannerMobilePath = $bannerDir . $bannerMobileName;
+    move_uploaded_file($bannerMobile['tmp_name'], $bannerMobilePath);
+
+    $bannerMobileUrl = "uploads/banners/" . rawurlencode($bannerMobileName);
 }
 
 // ====== 5️⃣ Guardar imágenes/videos del contenido ======
@@ -137,7 +153,7 @@ if ($is_banner === 1) {
 // ====== 7️⃣ Actualizar en DB ======
 $stmt = $conn->prepare("
     UPDATE articles 
-    SET title = :title, tags = :tags, banner = :banner, description = :description, contenido = :contenido, is_banner = :is_banner
+    SET title = :title, tags = :tags, banner = :banner, banner_mobile = :banner_mobile, description = :description, contenido = :contenido, is_banner = :is_banner
     WHERE id = :id
 ");
 
@@ -145,6 +161,7 @@ $stmt->bindParam(":id", $id, PDO::PARAM_INT);
 $stmt->bindParam(":title", $title);
 $stmt->bindParam(":tags", $tags);
 $stmt->bindParam(":banner", $bannerUrl);
+$stmt->bindParam(":banner_mobile", $bannerMobileUrl);
 $stmt->bindParam(":description", $description);
 
 $contenidoJson = json_encode($contenido);

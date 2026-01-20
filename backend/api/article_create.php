@@ -25,7 +25,6 @@ if ($type !== "Bearer" || !$token) {
     exit;
 }
 
-// ✅ Usamos la SECRET_KEY desde .env
 $secret_key = $_ENV["SECRET_KEY"];
 
 try {
@@ -49,10 +48,10 @@ if (!$title || !$tags) {
     exit;
 }
 
-// ====== 3️⃣ Generar ID único para archivos ======
+// ====== 3️⃣ Generar ID único ======
 $articleId = time();
 
-// ====== 4️⃣ Guardar banner ======
+// ====== 4️⃣ Guardar banner principal ======
 $bannerUrl = null;
 if (isset($_FILES['banner'])) {
     $banner = $_FILES['banner'];
@@ -63,11 +62,24 @@ if (isset($_FILES['banner'])) {
     $bannerPath = $bannerDir . $bannerName;
     move_uploaded_file($banner['tmp_name'], $bannerPath);
 
-    // 🚀 Guardamos ruta relativa
     $bannerUrl = "uploads/banners/" . rawurlencode($bannerName);
 }
 
-// ====== 5️⃣ Guardar imágenes/videos del contenido ======
+// ====== 5️⃣ Guardar banner versión móvil ======
+$bannerMobileUrl = null;
+if (isset($_FILES['banner_mobile'])) {
+    $bannerMobile = $_FILES['banner_mobile'];
+    $bannerDir = __DIR__ . "/../uploads/banners/";
+    if (!is_dir($bannerDir)) mkdir($bannerDir, 0777, true);
+
+    $bannerMobileName = $articleId . "_mobile_" . basename($bannerMobile['name']);
+    $bannerMobilePath = $bannerDir . $bannerMobileName;
+    move_uploaded_file($bannerMobile['tmp_name'], $bannerMobilePath);
+
+    $bannerMobileUrl = "uploads/banners/" . rawurlencode($bannerMobileName);
+}
+
+// ====== 6️⃣ Guardar imágenes/videos del contenido ======
 $articleFolder = __DIR__ . "/../uploads/articles/" . $articleId . "/";
 if (!is_dir($articleFolder)) mkdir($articleFolder, 0777, true);
 
@@ -112,24 +124,25 @@ foreach ($contenido as $i => &$bloque) {
 }
 unset($bloque);
 
-// ====== 6️⃣ Flag banner único ======
+// ====== 7️⃣ Bandera de banner único ======
 $is_banner = isset($_POST['is_banner']) ? (int)$_POST['is_banner'] : 0;
 if ($is_banner === 1) {
     $conn->exec("UPDATE articles SET is_banner = 0 WHERE is_banner = 1");
 }
 
-// ====== 7️⃣ Insertar en DB ======
+// ====== 8️⃣ Insertar en la base de datos ======
 $stmt = $conn->prepare("
-    INSERT INTO articles (title, tags, banner, description, contenido, is_banner)
-    VALUES (:title, :tags, :banner, :description, :contenido, :is_banner)
+    INSERT INTO articles (title, tags, banner, banner_mobile, description, contenido, is_banner)
+    VALUES (:title, :tags, :banner, :banner_mobile, :description, :contenido, :is_banner)
 ");
 
 $stmt->bindParam(":title", $title);
 $stmt->bindParam(":tags", $tags);
 $stmt->bindParam(":banner", $bannerUrl);
+$stmt->bindParam(":banner_mobile", $bannerMobileUrl);
 $stmt->bindParam(":description", $description);
 
-$contenidoJson = json_encode($contenido);
+$contenidoJson = json_encode($contenido, JSON_UNESCAPED_UNICODE);
 $stmt->bindParam(":contenido", $contenidoJson);
 $stmt->bindParam(":is_banner", $is_banner, PDO::PARAM_INT);
 

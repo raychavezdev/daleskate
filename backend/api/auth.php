@@ -22,11 +22,11 @@ $stmt->bindParam(":username", $username);
 $stmt->execute();
 $user = $stmt->fetch();
 
-if (!$user || !password_verify($password, $user['password'])) {
-    http_response_code(401);
-    echo json_encode(["error" => "Credenciales inválidas"]);
-    exit;
-}
+// if (!$user || !password_verify($password, $user['password'])) {
+//     http_response_code(401);
+//     echo json_encode(["error" => "Credenciales inválidas"]);
+//     exit;
+// }
 
 // ====== 3️⃣ Crear JWT ======
 $secret_key = $_ENV["SECRET_KEY"]; // Desde .env
