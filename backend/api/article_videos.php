@@ -5,7 +5,8 @@ require_once __DIR__ . "/../config/headers.php";
 try {
     // 1️⃣ Obtener todos los artículos
     $query = "SELECT id, title, banner, tags, description, contenido, created_at 
-              FROM articles 
+              FROM articles
+              WHERE is_exclusive = 0 
               ORDER BY created_at DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();

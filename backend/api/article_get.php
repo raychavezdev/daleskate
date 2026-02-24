@@ -1,43 +1,64 @@
 <?php
-// ✅ Cargar CORS + conexión DB
 require_once __DIR__ . "/../config/headers.php";
 
-// ====== 1️⃣ Verificar ID ======
-if (!isset($_GET['id'])) {
-    http_response_code(400);
-    echo json_encode(["error" => "Falta el ID del artículo"]);
-    exit;
-}
-
-$id = intval($_GET['id']);
-
 try {
-    $stmt = $conn->prepare("SELECT * FROM articles WHERE id = :id LIMIT 1");
-    $stmt->bindParam(":id", $id, PDO::PARAM_INT);
-    $stmt->execute();
-    $articulo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$articulo) {
-        http_response_code(404);
-        echo json_encode(["error" => "Artículo no encontrado"]);
+    $id = $_GET['id'] ?? null;
+    $token = $_GET['token'] ?? null;
+
+    if (!$id && !$token) {
+        http_response_code(400);
+        echo json_encode(["error" => "Faltan parámetros"]);
         exit;
     }
 
-    // ====== 2️⃣ Decodificar contenido ======
-    if (!empty($articulo['contenido'])) {
-        $contenido = json_decode($articulo['contenido'], true);
-        if (is_array($contenido)) {
-            foreach ($contenido as &$block) {
-                // Si quieres, aquí podrías añadir $baseUrl delante de las rutas
-                // $block['valor'] = $_ENV['FRONTEND_URL'] . '/' . $block['valor'];
-            }
-            unset($block);
-            $articulo['contenido'] = $contenido;
+    // 🔎 1️⃣ Si viene token, buscar por token (artículo exclusivo)
+    if ($token) {
+
+        $stmt = $conn->prepare("
+            SELECT * FROM articles 
+            WHERE exclusive_token = :token AND is_exclusive = 1
+        ");
+        $stmt->bindParam(":token", $token);
+        $stmt->execute();
+
+        $article = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$article) {
+            http_response_code(403);
+            echo json_encode(["error" => "No autorizado"]);
+            exit;
         }
+
+        echo json_encode($article);
+        exit;
     }
 
-    echo json_encode($articulo);
+    // 🔎 2️⃣ Si viene ID, buscar artículo normal
+    if ($id) {
+
+        $stmt = $conn->prepare("
+            SELECT * FROM articles 
+            WHERE id = :id AND is_exclusive = 0
+        ");
+        $stmt->bindParam(":id", $id);
+        $stmt->execute();
+
+        $article = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$article) {
+            http_response_code(404);
+            echo json_encode(["error" => "Artículo no encontrado"]);
+            exit;
+        }
+
+        echo json_encode($article);
+        exit;
+    }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["error" => "Error al obtener artículo", "detail" => $e->getMessage()]);
+    echo json_encode([
+        "error" => "Error al obtener artículo",
+        "detail" => $e->getMessage()
+    ]);
 }
