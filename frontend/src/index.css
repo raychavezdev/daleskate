@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'SourceSans3', system-ui, sans-serif;
+  background-color: #000;
+}
+
+
+@font-face {
+  font-family: 'SourceSans3';
+  src: url('./assets/fonts/SourceSans3-VariableFont_wght.ttf');
+  font-weight: 200 900;
+  font-style: normal;
+}
+
+
+@font-face {
+
+  font-family: 'DMSans';
+  src: url('./assets/fonts/DMSans-VariableFont_opsz,wght.ttf');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+
+  font-family: 'DMSansB';
+  src: url('./assets/fonts/DMSans-VariableFont_opsz,wght.ttf');
+  font-weight: 600;
+  font-style: bold;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('./assets/fonts/GeistMono-VariableFont_wght.ttf');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  src: url('./assets/fonts/Spectral-Bold.ttf');
+  font-weight: 700;
+  font-style: bold;
+}
+
+@theme {
+  --font-spectral: "Spectral", system-ui, sans-serif;
+  --font-geistmono: "GeistMono", monospace;
+
+}
+
+
+.preview h1 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.preview h2 {
+  font-size: 1.75rem;
+  font-weight: bold;
+}
+
+.preview h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.preview ul {
+  list-style-type: disc;
+  margin-left: 1rem;
+}
+
+.preview ol {
+  list-style-type: decimal;
+  margin-left: 1rem;
+}
+
+.preview li {
+  margin-bottom: 0.25rem;
+}
+
+
+.ql-size-small {
+  font-size: 0.8rem;
+}
+
+.ql-size-large {
+  font-size: 1.25rem;
+}
+
+.ql-size-huge {
+  font-size: 1.5rem;
+}
+
+.ql-align-center {
+  text-align: center;
+}
+
+.ql-align-right {
+  text-align: right;
+}
+
+.ql-align-justify {
+  text-align: justify;
+}
