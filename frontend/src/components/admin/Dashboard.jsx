@@ -35,6 +35,12 @@ const Dashboard = () => {
             Publicidad
           </Link>
           <Link
+            to="/admin/stats"
+            className="block py-2 px-4 rounded hover:bg-gray-700"
+          >
+            Estadísticas
+          </Link>
+          <Link
             to="/admin/polls"
             className="block py-2 px-4 rounded hover:bg-gray-700"
           >

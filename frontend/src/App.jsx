@@ -30,6 +30,7 @@ import PollCreate from "./components/admin/PollCreate.jsx";
 import PollList from "./components/admin/PollList.jsx";
 import PollWidget from "./components/ads/PollWidget.jsx";
 import ExclusiveArticles from "./components/admin/ExclusiveArticles.jsx";
+import ArticleStats from "./components/admin/ArticleStats.jsx";
 
 // Componente para rutas privadas
 const PrivateRoute = ({ children }) => {
@@ -100,6 +101,7 @@ function App() {
             <Route path="polls/create" element={<PollCreate />} />
             <Route path="polls" element={<PollList />} />
             <Route path="change-password" element={<ChangePassword />} />
+            <Route path="stats" element={<ArticleStats />} />
           </Route>
 
           {/*  Página no encontrada */}

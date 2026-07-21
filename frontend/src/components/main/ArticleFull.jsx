@@ -1,6 +1,6 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Container from "../templates/Container";
 import DOMPurify from "dompurify";
 
@@ -16,6 +16,22 @@ const ArticleFull = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [parsedContent, setParsedContent] = useState([]);
+
+  const viewRegistered = useRef(false);
+
+  const registerView = async (articleId) => {
+    try {
+      await fetch(`${API_URL}/api/article_view.php`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `article_id=${articleId}`,
+      });
+    } catch (err) {
+      console.error("Error registrando visita", err);
+    }
+  };
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -40,6 +56,11 @@ const ArticleFull = () => {
 
         setArticle(data);
 
+        if (data.id && !viewRegistered.current) {
+          viewRegistered.current = true;
+          registerView(data.id);
+        }
+
         try {
           const parsed =
             typeof data.contenido === "string"
@@ -51,9 +72,6 @@ const ArticleFull = () => {
           setParsedContent([]);
         }
 
-        
-        
-        
         const recentRes = await fetch(
           `${API_URL}/api/article_list.php?exclude_banner=1`,
         );
