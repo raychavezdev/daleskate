@@ -1,5 +1,4 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Container from "../templates/Container";
 import DOMPurify from "dompurify";
@@ -19,6 +18,25 @@ const ArticleFull = () => {
 
   const viewRegistered = useRef(false);
 
+  const getImageUrl = (path) => {
+    if (!path) return "";
+
+    return path.startsWith("http") ? path : `${API_URL}/${path}`;
+  };
+
+  const createSlug = (item) => {
+    if (item.slug) return item.slug;
+
+    return item.title
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim();
+  };
+
   const registerView = async (articleId) => {
     try {
       await fetch(`${API_URL}/api/article_view.php`, {
@@ -26,33 +44,39 @@ const ArticleFull = () => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: `article_id=${articleId}`,
+        body: `article_id=${encodeURIComponent(articleId)}`,
       });
-    } catch (err) {
-      console.error("Error registrando visita", err);
+    } catch (error) {
+      console.error("Error registrando visita:", error);
     }
   };
 
   useEffect(() => {
+    viewRegistered.current = false;
+    setLoading(true);
+    setError("");
+
     const fetchArticle = async () => {
       try {
         let url = "";
 
         if (token) {
-          url = `${API_URL}/api/article_get.php?token=${token}`;
+          url = `${API_URL}/api/article_get.php?token=${encodeURIComponent(
+            token,
+          )}`;
         } else if (id) {
-          url = `${API_URL}/api/article_get.php?id=${id}`;
+          url = `${API_URL}/api/article_get.php?id=${encodeURIComponent(id)}`;
         } else {
           throw new Error("Parámetros inválidos");
         }
 
-        const res = await fetch(url);
+        const response = await fetch(url);
 
-        if (!res.ok) {
-          throw new Error("Error al obtener artículo");
+        if (!response.ok) {
+          throw new Error("Error al obtener el artículo");
         }
 
-        const data = await res.json();
+        const data = await response.json();
 
         setArticle(data);
 
@@ -68,26 +92,37 @@ const ArticleFull = () => {
               : data.contenido;
 
           setParsedContent(Array.isArray(parsed) ? parsed : []);
-        } catch {
+        } catch (parseError) {
+          console.error(
+            "Error interpretando el contenido del artículo:",
+            parseError,
+          );
+
           setParsedContent([]);
         }
 
-        const recentRes = await fetch(
+        const recentResponse = await fetch(
           `${API_URL}/api/article_list.php?exclude_banner=1`,
         );
 
-        if (recentRes.ok) {
-          const recentData = await recentRes.json();
+        if (recentResponse.ok) {
+          const recentData = await recentResponse.json();
 
-          const filtered = recentData
-            .filter((item) => item.id !== data.id)
+          const articlesArray = Array.isArray(recentData)
+            ? recentData
+            : [];
+
+          const filteredArticles = articlesArray
+            .filter(
+              (item) => Number(item.id) !== Number(data.id),
+            )
             .slice(0, 3);
 
-          setRecentArticles(filtered);
+          setRecentArticles(filteredArticles);
         }
-      } catch (err) {
+      } catch (fetchError) {
         setError("No se pudo cargar el artículo");
-        console.error(err);
+        console.error(fetchError);
       } finally {
         setLoading(false);
       }
@@ -97,27 +132,46 @@ const ArticleFull = () => {
   }, [id, token]);
 
   if (loading) {
-    return <p className="text-center mt-10">Cargando artículo...</p>;
+    return (
+      <p className="text-center mt-10">
+        Cargando artículo...
+      </p>
+    );
   }
 
   if (error) {
-    return <p className="text-center text-red-500 mt-10">{error}</p>;
+    return (
+      <p className="text-center text-red-500 mt-10">
+        {error}
+      </p>
+    );
   }
 
   if (!article) {
-    return <p className="text-center mt-10">Artículo no encontrado</p>;
+    return (
+      <p className="text-center mt-10">
+        Artículo no encontrado
+      </p>
+    );
   }
+
+  /*
+   * Si existe la portada específica para cada dispositivo, se usa esa.
+   * Si no existe, se utiliza la otra como respaldo.
+   */
+  const desktopBanner =
+    article.banner || article.banner_mobile || "";
+
+  const mobileBanner =
+    article.banner_mobile || article.banner || "";
 
   return (
     <div className="bg-white">
       <Container>
         <div className="pt-5 pb-10">
-          {}
-          {}
-          {}
           <div className="px-5">
             <h1 className="text-4xl font-bold font-serif">
-              {article.title.toUpperCase()}
+              {(article.title || "").toUpperCase()}
             </h1>
 
             {article.tags && (
@@ -127,51 +181,32 @@ const ArticleFull = () => {
             )}
           </div>
 
-          {}
-          {}
-          {}
-          {article.banner && (
+          {desktopBanner && (
             <img
-              src={
-                article.banner.startsWith("http")
-                  ? article.banner
-                  : `${API_URL}/${article.banner}`
-              }
+              src={getImageUrl(desktopBanner)}
               alt={article.title}
               className="hidden md:block w-full object-cover"
             />
           )}
 
-          {}
-          {}
-          {}
-          {article.banner_mobile && (
+          {mobileBanner && (
             <img
-              src={
-                article.banner_mobile.startsWith("http")
-                  ? article.banner_mobile
-                  : `${API_URL}/${article.banner_mobile}`
-              }
+              src={getImageUrl(mobileBanner)}
               alt={`${article.title} - móvil`}
               className="block md:hidden w-full object-cover"
             />
           )}
 
-          {}
-          {}
-          {}
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
-            {}
-            {}
-            {}
             <article className="min-w-0 flex-1">
               <div className="space-y-6">
-                {}
                 {article.description && (
                   <div
                     className="px-5 preview whitespace-pre-line mb-4"
                     dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(article.description),
+                      __html: DOMPurify.sanitize(
+                        article.description,
+                      ),
                     }}
                   />
                 )}
@@ -184,7 +219,9 @@ const ArticleFull = () => {
                           key={index}
                           className="px-5 whitespace-pre-line"
                           dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(block.valor),
+                            __html: DOMPurify.sanitize(
+                              block.valor || "",
+                            ),
                           }}
                         />
                       );
@@ -200,26 +237,36 @@ const ArticleFull = () => {
                       );
 
                     case "imagen": {
-                      const src = block.valor.startsWith("http")
-                        ? block.valor
-                        : `${API_URL}/${block.valor}`;
+                      if (!block.valor) return null;
+
+                      const imageSrc = getImageUrl(block.valor);
 
                       if (block.fullWidth) {
                         return (
                           <div key={index}>
-                            <img src={src} alt="" className="w-full" />
+                            <img
+                              src={imageSrc}
+                              alt=""
+                              className="w-full"
+                            />
                           </div>
                         );
                       }
 
                       return (
                         <div key={index} className="px-5">
-                          <img src={src} alt="" className="w-full" />
+                          <img
+                            src={imageSrc}
+                            alt=""
+                            className="w-full"
+                          />
                         </div>
                       );
                     }
 
                     case "video": {
+                      if (!block.valor) return null;
+
                       let videoId = "";
 
                       if (block.valor.includes("youtu.be/")) {
@@ -230,36 +277,44 @@ const ArticleFull = () => {
                         videoId = block.valor
                           .split("watch?v=")[1]
                           .split("&")[0];
+                      } else if (
+                        block.valor.includes("youtube.com/embed/")
+                      ) {
+                        videoId = block.valor
+                          .split("youtube.com/embed/")[1]
+                          .split("?")[0];
                       }
 
                       const embedUrl = videoId
                         ? `https://www.youtube.com/embed/${videoId}`
                         : "";
 
-                      return embedUrl ? (
+                      if (!embedUrl) return null;
+
+                      return (
                         <div key={index} className="px-5">
                           <div className="w-full aspect-video">
                             <iframe
                               src={embedUrl}
+                              title={`Video ${index + 1}`}
                               className="w-full h-full rounded"
                               allowFullScreen
                             />
                           </div>
                         </div>
-                      ) : null;
+                      );
                     }
 
                     case "video_externo":
                       return (
-                        <div key={index} className="px-5 w-full text-center">
+                        <div
+                          key={index}
+                          className="px-5 w-full text-center"
+                        >
                           {block.preview && (
                             <img
-                              src={
-                                block.preview.startsWith("http")
-                                  ? block.preview
-                                  : `${API_URL}/${block.preview}`
-                              }
-                              alt="Miniatura video"
+                              src={getImageUrl(block.preview)}
+                              alt="Miniatura del video"
                               className="w-full mb-3"
                             />
                           )}
@@ -284,26 +339,18 @@ const ArticleFull = () => {
               </div>
             </article>
 
-            {}
-            {}
-            {}
-
             <aside className="relative w-full lg:w-[320px] mt-14 lg:mt-0 px-5 lg:px-0 border-t lg:border-none pt-4 lg:pt-0">
               <div className="sticky top-4 max-h-[100vh] flex flex-col pb-4">
                 <h3 className="text-xl font-bold mb-3 tracking-wide font-serif">
                   ARTÍCULOS RECIENTES
                 </h3>
 
-                <div className="flex flex-col justify-start gap-2">
+                <div className="flex flex-col justify-start gap-4">
                   {recentArticles.map((item) => {
-                    const safeSlug =
-                      item.slug ||
-                      item.title
-                        .toLowerCase()
-                        .replace(/[^a-z0-9\s-]/g, "")
-                        .replace(/\s+/g, "-")
-                        .replace(/-+/g, "-")
-                        .trim();
+                    const safeSlug = createSlug(item);
+
+                    const recentArticleBanner =
+                      item.banner || item.banner_mobile || "";
 
                     return (
                       <a
@@ -311,37 +358,40 @@ const ArticleFull = () => {
                         href={`/articulo/${item.id}-${safeSlug}`}
                         className="block group"
                       >
-                        {}
-                        {item.banner && (
+                        {recentArticleBanner && (
                           <div className="overflow-hidden rounded">
                             <img
-                              src={
-                                item.banner.startsWith("http")
-                                  ? item.banner
-                                  : `${API_URL}/${item.banner}`
-                              }
+                              src={getImageUrl(
+                                recentArticleBanner,
+                              )}
                               alt={item.title}
                               className="w-full aspect-[18/9] object-cover transition duration-500 group-hover:scale-105"
                             />
                           </div>
                         )}
 
-                        {}
                         {item.tags && (
-                          <p className="text-[10px] tracking-widest text-orange-500 mt-1 uppercase line-clamp-1">
+                          <p
+                            className={`text-[10px] tracking-widest text-orange-500 uppercase line-clamp-1 ${
+                              recentArticleBanner
+                                ? "mt-1"
+                                : ""
+                            }`}
+                          >
                             {item.tags.replace(/,/g, " | ")}
                           </p>
                         )}
 
-                        {}
-                        <h4 className="font-bold text-sm leading-tight mt-1 group-hover:text-orange-500 transition line-clamp-1">
+                        <h4 className="font-bold text-sm leading-tight mt-1 group-hover:text-orange-500 transition line-clamp-2">
                           {item.title}
                         </h4>
 
-                        {}
                         {item.description && (
                           <p className="text-[11px] text-gray-600 mt-1 line-clamp-2">
-                            {item.description.replace(/<[^>]*>/g, "")}
+                            {item.description.replace(
+                              /<[^>]*>/g,
+                              "",
+                            )}
                           </p>
                         )}
                       </a>
