@@ -105,6 +105,7 @@ const ArticleCreator = () => {
               file: null,
               preview: block.valor ? buildFileUrl(block.valor) : "",
               fullWidth: Boolean(block.fullWidth),
+              caption: block.caption || "",
             };
           }
 
@@ -112,9 +113,7 @@ const ArticleCreator = () => {
             return {
               ...block,
               file: null,
-              preview: block.preview
-                ? buildFileUrl(block.preview)
-                : "",
+              preview: block.preview ? buildFileUrl(block.preview) : "",
             };
           }
 
@@ -168,6 +167,7 @@ const ArticleCreator = () => {
           file: null,
           preview: "",
           fullWidth: false,
+          caption: "",
         },
       ]);
 
@@ -285,9 +285,7 @@ const ArticleCreator = () => {
     }
 
     const hasDesktopBanner = Boolean(bannerFile || bannerPreview);
-    const hasMobileBanner = Boolean(
-      bannerMobileFile || bannerMobilePreview,
-    );
+    const hasMobileBanner = Boolean(bannerMobileFile || bannerMobilePreview);
 
     if (isBanner && !hasDesktopBanner && !hasMobileBanner) {
       alert(
@@ -330,6 +328,7 @@ const ArticleCreator = () => {
               tipo: "imagen",
               valor: fileKey,
               fullWidth: Boolean(block.fullWidth),
+              caption: block.caption?.trim() || "",
             };
           }
 
@@ -339,6 +338,7 @@ const ArticleCreator = () => {
               ? getRelativePath(block.preview)
               : block.valor || "",
             fullWidth: Boolean(block.fullWidth),
+            caption: block.caption?.trim() || "",
           };
         }
 
@@ -358,9 +358,7 @@ const ArticleCreator = () => {
           return {
             tipo: "video_externo",
             valor: block.valor,
-            preview: block.preview
-              ? getRelativePath(block.preview)
-              : "",
+            preview: block.preview ? getRelativePath(block.preview) : "",
           };
         }
 
@@ -457,8 +455,8 @@ const ArticleCreator = () => {
 
         <div className="mb-4 rounded border border-gray-200 bg-white p-4">
           <p className="mb-3 text-sm text-gray-600">
-            Las portadas son opcionales. Para mostrar el artículo como banner
-            en la página principal debes agregar al menos una.
+            Las portadas son opcionales. Para mostrar el artículo como banner en
+            la página principal debes agregar al menos una.
           </p>
 
           <label className="block font-semibold mb-1">
@@ -554,10 +552,7 @@ const ArticleCreator = () => {
         </div>
 
         {contenido.map((block, index) => (
-          <div
-            key={index}
-            className="mb-3 border p-2 rounded relative"
-          >
+          <div key={index} className="mb-3 border p-2 rounded relative">
             <label className="block font-semibold mb-1">
               {(block.tipo || "bloque").toUpperCase()}
             </label>
@@ -569,21 +564,16 @@ const ArticleCreator = () => {
                     type="checkbox"
                     checked={Boolean(block.fullWidth)}
                     onChange={(event) =>
-                      updateBlock(
-                        index,
-                        "fullWidth",
-                        event.target.checked,
-                      )
+                      updateBlock(index, "fullWidth", event.target.checked)
                     }
                   />
-
                   Imagen ancho completo
                 </label>
 
                 {block.preview && (
                   <img
                     src={block.preview}
-                    alt="Vista previa"
+                    alt={block.caption || "Vista previa"}
                     className="w-full rounded"
                   />
                 )}
@@ -591,10 +581,36 @@ const ArticleCreator = () => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(event) =>
-                    handleImageBlockChange(index, event)
-                  }
+                  onChange={(event) => handleImageBlockChange(index, event)}
                 />
+
+                <div>
+                  <label
+                    htmlFor={`image-caption-${index}`}
+                    className="block mb-1 text-sm font-medium text-gray-700"
+                  >
+                    Pie de foto{" "}
+                    <span className="font-normal text-gray-500">
+                      (opcional)
+                    </span>
+                  </label>
+
+                  <input
+                    id={`image-caption-${index}`}
+                    type="text"
+                    value={block.caption || ""}
+                    onChange={(event) =>
+                      updateBlock(index, "caption", event.target.value)
+                    }
+                    placeholder="Ej. Foto: Juan Pérez — Skatepark Guadalajara"
+                    maxLength={250}
+                    className="border p-2 w-full rounded"
+                  />
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    {block.caption?.length || 0}/250 caracteres
+                  </p>
+                </div>
               </div>
             ) : block.tipo === "video_externo" ? (
               <div className="space-y-2">
@@ -628,9 +644,7 @@ const ArticleCreator = () => {
               <ReactQuill
                 theme="snow"
                 value={block.valor}
-                onChange={(value) =>
-                  updateBlock(index, "valor", value)
-                }
+                onChange={(value) => updateBlock(index, "valor", value)}
                 modules={modules}
                 className="bg-white rounded"
               />
@@ -669,9 +683,7 @@ const ArticleCreator = () => {
           onClick={handleSubmit}
           disabled={loading}
           className={`flex items-center justify-center gap-2 px-4 py-2 mt-4 rounded text-white ${
-            loading
-              ? "bg-gray-500 cursor-not-allowed"
-              : "bg-black"
+            loading ? "bg-gray-500 cursor-not-allowed" : "bg-black"
           }`}
         >
           {loading ? (
@@ -709,9 +721,7 @@ const ArticleCreator = () => {
 
           {bannerMobilePreview && (
             <div>
-              <p className="mb-1 text-sm text-gray-500">
-                Versión móvil
-              </p>
+              <p className="mb-1 text-sm text-gray-500">Versión móvil</p>
 
               <img
                 src={bannerMobilePreview}
@@ -749,21 +759,23 @@ const ArticleCreator = () => {
                 />
               )}
 
-              {block.tipo === "imagen" &&
-                block.preview &&
-                (block.fullWidth ? (
+              {block.tipo === "imagen" && block.preview && (
+                <figure
+                  className={block.fullWidth ? "w-full" : "my-2 w-full px-5"}
+                >
                   <img
                     src={block.preview}
-                    alt=""
-                    className="w-full"
+                    alt={block.caption || `Imagen del artículo ${title}`}
+                    className={block.fullWidth ? "w-full" : "w-full rounded"}
                   />
-                ) : (
-                  <img
-                    src={block.preview}
-                    alt=""
-                    className="my-2 rounded w-full px-5"
-                  />
-                ))}
+
+                  {block.caption?.trim() && (
+                    <figcaption className="mt-2 text-sm italic leading-relaxed text-gray-500">
+                      {block.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              )}
 
               {block.tipo === "video" && block.valor && (
                 <div className="px-5">

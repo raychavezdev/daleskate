@@ -108,14 +108,10 @@ const ArticleFull = () => {
         if (recentResponse.ok) {
           const recentData = await recentResponse.json();
 
-          const articlesArray = Array.isArray(recentData)
-            ? recentData
-            : [];
+          const articlesArray = Array.isArray(recentData) ? recentData : [];
 
           const filteredArticles = articlesArray
-            .filter(
-              (item) => Number(item.id) !== Number(data.id),
-            )
+            .filter((item) => Number(item.id) !== Number(data.id))
             .slice(0, 3);
 
           setRecentArticles(filteredArticles);
@@ -132,38 +128,24 @@ const ArticleFull = () => {
   }, [id, token]);
 
   if (loading) {
-    return (
-      <p className="text-center mt-10">
-        Cargando artículo...
-      </p>
-    );
+    return <p className="text-center mt-10">Cargando artículo...</p>;
   }
 
   if (error) {
-    return (
-      <p className="text-center text-red-500 mt-10">
-        {error}
-      </p>
-    );
+    return <p className="text-center text-red-500 mt-10">{error}</p>;
   }
 
   if (!article) {
-    return (
-      <p className="text-center mt-10">
-        Artículo no encontrado
-      </p>
-    );
+    return <p className="text-center mt-10">Artículo no encontrado</p>;
   }
 
   /*
    * Si existe la portada específica para cada dispositivo, se usa esa.
    * Si no existe, se utiliza la otra como respaldo.
    */
-  const desktopBanner =
-    article.banner || article.banner_mobile || "";
+  const desktopBanner = article.banner || article.banner_mobile || "";
 
-  const mobileBanner =
-    article.banner_mobile || article.banner || "";
+  const mobileBanner = article.banner_mobile || article.banner || "";
 
   return (
     <div className="bg-white">
@@ -204,9 +186,7 @@ const ArticleFull = () => {
                   <div
                     className="px-5 preview whitespace-pre-line mb-4"
                     dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(
-                        article.description,
-                      ),
+                      __html: DOMPurify.sanitize(article.description),
                     }}
                   />
                 )}
@@ -219,9 +199,7 @@ const ArticleFull = () => {
                           key={index}
                           className="px-5 whitespace-pre-line"
                           dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(
-                              block.valor || "",
-                            ),
+                            __html: DOMPurify.sanitize(block.valor || ""),
                           }}
                         />
                       );
@@ -240,27 +218,42 @@ const ArticleFull = () => {
                       if (!block.valor) return null;
 
                       const imageSrc = getImageUrl(block.valor);
+                      const caption = block.caption?.trim() || "";
 
                       if (block.fullWidth) {
                         return (
-                          <div key={index}>
+                          <figure key={index} className="w-full">
                             <img
                               src={imageSrc}
-                              alt=""
+                              alt={caption || `Imagen de ${article.title}`}
                               className="w-full"
+                              loading="lazy"
                             />
-                          </div>
+
+                            {caption && (
+                              <figcaption className="mt-2 px-5 text-sm italic leading-relaxed text-gray-500">
+                                {caption}
+                              </figcaption>
+                            )}
+                          </figure>
                         );
                       }
 
                       return (
-                        <div key={index} className="px-5">
+                        <figure key={index} className="px-5">
                           <img
                             src={imageSrc}
-                            alt=""
+                            alt={caption || `Imagen de ${article.title}`}
                             className="w-full"
+                            loading="lazy"
                           />
-                        </div>
+
+                          {caption && (
+                            <figcaption className="mt-2 text-sm italic leading-relaxed text-gray-500">
+                              {caption}
+                            </figcaption>
+                          )}
+                        </figure>
                       );
                     }
 
@@ -277,9 +270,7 @@ const ArticleFull = () => {
                         videoId = block.valor
                           .split("watch?v=")[1]
                           .split("&")[0];
-                      } else if (
-                        block.valor.includes("youtube.com/embed/")
-                      ) {
+                      } else if (block.valor.includes("youtube.com/embed/")) {
                         videoId = block.valor
                           .split("youtube.com/embed/")[1]
                           .split("?")[0];
@@ -307,10 +298,7 @@ const ArticleFull = () => {
 
                     case "video_externo":
                       return (
-                        <div
-                          key={index}
-                          className="px-5 w-full text-center"
-                        >
+                        <div key={index} className="px-5 w-full text-center">
                           {block.preview && (
                             <img
                               src={getImageUrl(block.preview)}
@@ -361,9 +349,7 @@ const ArticleFull = () => {
                         {recentArticleBanner && (
                           <div className="overflow-hidden rounded">
                             <img
-                              src={getImageUrl(
-                                recentArticleBanner,
-                              )}
+                              src={getImageUrl(recentArticleBanner)}
                               alt={item.title}
                               className="w-full aspect-[18/9] object-cover transition duration-500 group-hover:scale-105"
                             />
@@ -373,9 +359,7 @@ const ArticleFull = () => {
                         {item.tags && (
                           <p
                             className={`text-[10px] tracking-widest text-orange-500 uppercase line-clamp-1 ${
-                              recentArticleBanner
-                                ? "mt-1"
-                                : ""
+                              recentArticleBanner ? "mt-1" : ""
                             }`}
                           >
                             {item.tags.replace(/,/g, " | ")}
@@ -388,10 +372,7 @@ const ArticleFull = () => {
 
                         {item.description && (
                           <p className="text-[11px] text-gray-600 mt-1 line-clamp-2">
-                            {item.description.replace(
-                              /<[^>]*>/g,
-                              "",
-                            )}
+                            {item.description.replace(/<[^>]*>/g, "")}
                           </p>
                         )}
                       </a>
