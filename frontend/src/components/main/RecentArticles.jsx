@@ -9,6 +9,75 @@ const RecentArticles = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const parseContent = (content) => {
+    if (!content) return [];
+
+    if (Array.isArray(content)) {
+      return content;
+    }
+
+    try {
+      const parsed = JSON.parse(content);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (parseError) {
+      console.error("Error interpretando el contenido:", parseError);
+      return [];
+    }
+  };
+
+  const getYouTubeVideoId = (url = "") => {
+    if (!url) return "";
+
+    try {
+      const parsedUrl = new URL(url);
+
+      if (parsedUrl.hostname.includes("youtu.be")) {
+        return parsedUrl.pathname.split("/").filter(Boolean)[0] || "";
+      }
+
+      if (parsedUrl.pathname.includes("/shorts/")) {
+        return parsedUrl.pathname.split("/shorts/")[1]?.split("/")[0] || "";
+      }
+
+      if (parsedUrl.pathname.includes("/embed/")) {
+        return parsedUrl.pathname.split("/embed/")[1]?.split("/")[0] || "";
+      }
+
+      return parsedUrl.searchParams.get("v") || "";
+    } catch {
+      const match = url.match(
+        /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+      );
+
+      return match?.[1] || "";
+    }
+  };
+
+  const getYouTubeThumbnail = (content) => {
+    const blocks = parseContent(content);
+
+    const firstYouTubeVideo = blocks.find(
+      (block) => block.tipo === "video" && block.valor,
+    );
+
+    if (!firstYouTubeVideo) return "";
+
+    const videoId = getYouTubeVideoId(firstYouTubeVideo.valor);
+
+    if (!videoId) return "";
+
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  };
+
+  const getArticleCardImage = (article) => {
+    return (
+      article.banner ||
+      article.banner_mobile ||
+      getYouTubeThumbnail(article.contenido) ||
+      ""
+    );
+  };
+
   useEffect(() => {
     const fetchArticles = async () => {
       try {
@@ -52,9 +121,7 @@ const RecentArticles = () => {
         </h2>
 
         {error ? (
-          <p className="py-10 text-center text-red-500">
-            {error}
-          </p>
+          <p className="py-10 text-center text-red-500">{error}</p>
         ) : articles.length > 0 ? (
           <div className="md:grid md:grid-cols-2 md:gap-6">
             {articles.map((article) => (
@@ -67,7 +134,7 @@ const RecentArticles = () => {
                     ? article.tags.replace(/,/g, " | ")
                     : ""
                 }
-                img={article.banner || article.banner_mobile || ""}
+                img={getArticleCardImage(article)}
                 title={article.title}
                 text={article.description}
               />

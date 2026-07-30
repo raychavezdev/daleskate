@@ -24,18 +24,27 @@ const Article = ({
       .trim();
 
   const stripHtml = (html = "") => {
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
+    const temporaryElement = document.createElement("div");
+    temporaryElement.innerHTML = html;
 
-    return tmp.textContent || tmp.innerText || "";
+    return (
+      temporaryElement.textContent ||
+      temporaryElement.innerText ||
+      ""
+    );
   };
 
   const getImageUrl = (path) => {
     if (!path) return "";
 
-    return path.startsWith("http")
-      ? path
-      : `${API_URL}/${path}`;
+    if (
+      path.startsWith("http://") ||
+      path.startsWith("https://")
+    ) {
+      return path;
+    }
+
+    return `${API_URL}/${path}`;
   };
 
   const imageUrl = getImageUrl(img);
@@ -54,12 +63,20 @@ const Article = ({
         )}
 
         {imageUrl ? (
-          <div className="h-96 overflow-hidden bg-gray-900">
+          <div className="relative h-96 overflow-hidden bg-gray-900">
             <img
               src={imageUrl}
               alt={safeTitle}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
+
+            {imageUrl.includes("img.youtube.com") && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                  <span className="ml-1 text-2xl">▶</span>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="relative flex h-96 items-end overflow-hidden bg-neutral-900 p-6">
@@ -100,6 +117,7 @@ const Article = ({
             </p>
           )}
 
+        
         </div>
       </Link>
     </article>
