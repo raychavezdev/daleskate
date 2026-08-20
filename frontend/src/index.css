@@ -55,33 +55,57 @@ body {
 }
 
 
-.preview h1 {
+.article-rich-text h1 {
   font-size: 2rem;
   font-weight: bold;
 }
 
-.preview h2 {
+.article-rich-text h2 {
   font-size: 1.75rem;
   font-weight: bold;
 }
 
-.preview h3 {
+.article-rich-text h3 {
   font-size: 1.5rem;
   font-weight: bold;
 }
 
-.preview ul {
-  list-style-type: disc;
-  margin-left: 1rem;
+.article-rich-text ol,
+.article-rich-text ul {
+  margin: 0.75rem 0;
+  padding-left: 1.75rem;
 }
 
-.preview ol {
+.article-rich-text ol {
   list-style-type: decimal;
-  margin-left: 1rem;
 }
 
-.preview li {
+.article-rich-text ul {
+  list-style-type: disc;
+}
+
+.article-rich-text li {
   margin-bottom: 0.25rem;
+}
+
+/*
+ * Quill 2 puede guardar ambos tipos de lista dentro de <ol>
+ * y distinguirlos mediante data-list.
+ */
+.article-rich-text li[data-list="ordered"] {
+  list-style-type: decimal;
+}
+
+.article-rich-text li[data-list="bullet"] {
+  list-style-type: disc;
+}
+
+/*
+ * El marcador auxiliar de Quill solo se necesita dentro del editor.
+ * Al renderizar el HTML usamos los marcadores nativos del navegador.
+ */
+.article-rich-text .ql-ui {
+  display: none;
 }
 
 

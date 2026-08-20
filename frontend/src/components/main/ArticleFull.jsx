@@ -184,7 +184,7 @@ const ArticleFull = () => {
               <div className="space-y-6">
                 {article.description && (
                   <div
-                    className="px-5 preview whitespace-pre-line mb-4"
+                    className="article-rich-text px-5 mb-4"
                     dangerouslySetInnerHTML={{
                       __html: DOMPurify.sanitize(article.description),
                     }}
@@ -197,7 +197,7 @@ const ArticleFull = () => {
                       return (
                         <div
                           key={index}
-                          className="px-5 whitespace-pre-line"
+                          className="article-rich-text px-5"
                           dangerouslySetInnerHTML={{
                             __html: DOMPurify.sanitize(block.valor || ""),
                           }}

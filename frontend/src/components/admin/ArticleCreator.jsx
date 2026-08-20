@@ -29,7 +29,7 @@ const ArticleCreator = () => {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }],
+      [{ list: "ordered" }, { list: "bullet" }],
       [{ size: ["small", false, "large", "huge"] }],
       [{ align: [] }],
       ["link"],
@@ -741,7 +741,7 @@ const ArticleCreator = () => {
         <div className="space-y-6">
           {description && (
             <div
-              className="preview whitespace-pre-line mb-4 px-5"
+              className="article-rich-text mb-4 px-5"
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(description),
               }}
@@ -752,7 +752,7 @@ const ArticleCreator = () => {
             <div key={index}>
               {block.tipo === "texto" && (
                 <div
-                  className="px-5"
+                  className="article-rich-text px-5"
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(block.valor),
                   }}
