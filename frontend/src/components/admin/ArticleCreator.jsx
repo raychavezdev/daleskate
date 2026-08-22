@@ -30,6 +30,7 @@ const ArticleCreator = () => {
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
       [{ list: "ordered" }, { list: "bullet" }],
+      [{ color: [] }],
       [{ size: ["small", false, "large", "huge"] }],
       [{ align: [] }],
       ["link"],
