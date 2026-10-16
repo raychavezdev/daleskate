@@ -3,6 +3,7 @@ require_once __DIR__ . '/bootstrap.php';
 
 // Obtener datos de conexión desde .env con valores por defecto
 $host = $_ENV['DB_HOST'] ?? 'localhost';
+$port = $_ENV['DB_PORT'] ?? '3306';
 $db_name = $_ENV['DB_NAME'] ?? 'daleskate';
 $username = $_ENV['DB_USER'] ?? 'root';
 $password = $_ENV['DB_PASS'] ?? '';
@@ -11,7 +12,7 @@ define("SECRET_KEY", $_ENV['SECRET_KEY'] ?? 'mi_clave_ultra_secreta_2025');
 
 try {
     $conn = new PDO(
-        "mysql:host=$host;dbname=$db_name;charset=utf8mb4",
+        "mysql:host=$host;port=$port;dbname=$db_name;charset=utf8mb4",
         $username,
         $password
     );

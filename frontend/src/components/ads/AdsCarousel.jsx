@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -11,9 +12,20 @@ const AdsCarousel = () => {
 
   useEffect(() => {
     fetch(`${API_URL}/api/ads_get.php`)
-      .then((res) => res.json())
-      .then((data) => setAds(data))
-      .catch((err) => console.error("Error cargando anuncios:", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Error HTTP ${res.status}`);
+        }
+
+        return res.json();
+      })
+      .then((data) => {
+        setAds(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Error cargando anuncios:", err);
+        setAds([]);
+      });
   }, []);
 
   const settings = {
@@ -27,7 +39,7 @@ const AdsCarousel = () => {
     slidesToScroll: 1,
   };
 
-  if (ads.length === 0) return null; 
+  if (ads.length === 0) return null;
 
   return (
     <Container>

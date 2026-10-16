@@ -2,6 +2,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Container from "../templates/Container";
 import DOMPurify from "dompurify";
+import { getArticleThumbnail } from "../../utils/articleThumbnail";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -328,7 +329,7 @@ const ArticleFull = () => {
             </article>
 
             <aside className="relative w-full lg:w-[320px] mt-14 lg:mt-0 px-5 lg:px-0 border-t lg:border-none pt-4 lg:pt-0">
-              <div className="sticky top-4 max-h-[100vh] flex flex-col pb-4">
+              <div className="flex flex-col pb-4">
                 <h3 className="text-xl font-bold mb-3 tracking-wide font-serif">
                   ARTÍCULOS RECIENTES
                 </h3>
@@ -337,8 +338,7 @@ const ArticleFull = () => {
                   {recentArticles.map((item) => {
                     const safeSlug = createSlug(item);
 
-                    const recentArticleBanner =
-                      item.banner || item.banner_mobile || "";
+                    const recentArticleBanner = getArticleThumbnail(item);
 
                     return (
                       <a
