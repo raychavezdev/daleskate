@@ -14,7 +14,9 @@ const getYouTubeVideoId = (value) => {
   if (typeof value !== "string" || !value) return "";
 
   try {
-    const url = new URL(value);
+    const match = value.match(/https?:\/\/[^\s<>"']+/i);
+    if (!match) return "";
+    const url = new URL(match[0].replace(/&amp;/g, "&"));
     const host = url.hostname.toLowerCase();
     if (host === "youtu.be" || host === "www.youtu.be") {
       return url.pathname.split("/").filter(Boolean)[0] || "";
