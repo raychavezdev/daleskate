@@ -52,8 +52,10 @@ $insert->execute([
 ]);
 
 $testSecret = "article-access-test-only-secret";
+$adminIssuedAt = time();
 $validJwt = JWT::encode([
-    "iat" => time(),
+    "iat" => $adminIssuedAt,
+    "exp" => $adminIssuedAt + DALESKATE_JWT_LIFETIME_SECONDS,
     "data" => ["id" => 1, "username" => "test-admin", "role" => "admin"],
 ], $testSecret, "HS256");
 $adminAuthorization = authorizeAdminRequest($db, "Bearer " . $validJwt, $testSecret);
@@ -76,7 +78,8 @@ assertArticleAccessTest(getArticleById($db, 20) === null, "artículo exclusivo p
 $adminArticle = getArticleById($db, 20, $adminAuthorization[0] === 200);
 assertArticleAccessTest($adminArticle !== null, "artículo exclusivo por ID con JWT válido debe estar disponible");
 $editorJwt = JWT::encode([
-    "iat" => time(),
+    "iat" => $editorIssuedAt = time(),
+    "exp" => $editorIssuedAt + DALESKATE_JWT_LIFETIME_SECONDS,
     "data" => ["id" => 2, "username" => "test-editor", "role" => "editor"],
 ], $testSecret, "HS256");
 $editorAuthorization = authorizeAdminRequest($db, "Bearer " . $editorJwt, $testSecret);

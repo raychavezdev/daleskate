@@ -3,6 +3,8 @@
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
+const DALESKATE_JWT_LIFETIME_SECONDS = 28800;
+
 function getAuthorizationHeader(): ?string
 {
     $headers = function_exists('getallheaders') ? getallheaders() : [];
@@ -29,6 +31,16 @@ function validateBearerToken(?string $authorizationHeader, string $secretKey): ?
 
     try {
         $decoded = JWT::decode($matches[1], new Key($secretKey, 'HS256'));
+
+        if (!isset($decoded->iat, $decoded->exp)
+            || !is_int($decoded->iat)
+            || !is_int($decoded->exp)
+            || $decoded->iat > time()
+            || $decoded->exp <= $decoded->iat
+            || $decoded->exp - $decoded->iat > DALESKATE_JWT_LIFETIME_SECONDS
+            || $decoded->exp <= time()) {
+            return null;
+        }
 
         return isset($decoded->data) && isset($decoded->data->id)
             ? $decoded->data
@@ -114,8 +126,10 @@ function authenticateRequest(PDO $conn, $data, string $secretKey): array
             return [401, ["error" => "Credenciales inválidas"]];
         }
 
+        $issuedAt = time();
         $payload = [
-            "iat" => time(),
+            "iat" => $issuedAt,
+            "exp" => $issuedAt + DALESKATE_JWT_LIFETIME_SECONDS,
             "data" => [
                 "id" => $user["id"],
                 "username" => $user["username"],

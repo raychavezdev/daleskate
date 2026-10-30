@@ -31,6 +31,25 @@ $insert->execute([1, "test-user", "admin", $testHash]);
 assertTest($status === 200 && isset($response["token"]), "credenciales correctas deben emitir un token");
 $decoded = JWT::decode($response["token"], new Key($testSecret, "HS256"));
 assertTest($decoded->data->username === "test-user", "el token de prueba debe ser válido");
+assertTest($decoded->iat > 0 && $decoded->exp - $decoded->iat === DALESKATE_JWT_LIFETIME_SECONDS, "el JWT debe expirar exactamente ocho horas después de emitirse");
+assertTest(validateBearerToken("Bearer " . $response["token"], $testSecret) !== null, "el validador debe aceptar un JWT vigente");
+
+$expiredToken = JWT::encode([
+    "iat" => time() - DALESKATE_JWT_LIFETIME_SECONDS - 1,
+    "exp" => time() - 1,
+    "data" => ["id" => 1, "username" => "test-user", "role" => "admin"],
+], $testSecret, "HS256");
+assertTest(validateBearerToken("Bearer " . $expiredToken, $testSecret) === null, "el validador debe rechazar JWT expirados");
+
+$legacyToken = JWT::encode([
+    "iat" => time(),
+    "data" => ["id" => 1, "username" => "test-user", "role" => "admin"],
+], $testSecret, "HS256");
+assertTest(validateBearerToken("Bearer " . $legacyToken, $testSecret) === null, "el validador debe rechazar JWT antiguos sin exp");
+
+$tokenParts = explode('.', $response["token"]);
+$tokenParts[2] = ($tokenParts[2][0] === 'A' ? 'B' : 'A') . substr($tokenParts[2], 1);
+assertTest(validateBearerToken("Bearer " . implode('.', $tokenParts), $testSecret) === null, "el validador debe rechazar firmas alteradas");
 
 $invalidCases = [
     [(object)["username" => "test-user", "password" => "incorrecta"], "contraseña incorrecta"],

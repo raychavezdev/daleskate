@@ -40,7 +40,7 @@ if (!$user) {
 
 
 if (!password_verify($current_password, $user['password'])) {
-    http_response_code(401);
+    http_response_code(400);
     echo json_encode(["error" => "Contraseña actual incorrecta"]);
     exit;
 }

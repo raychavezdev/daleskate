@@ -28,6 +28,15 @@ const ChangePassword = () => {
           new_password: newPass,
         }),
       });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (res.status === 403) {
+        alert("No tienes permisos para realizar esta acción");
+        return;
+      }
       const data = await res.json();
       alert(data.message || data.error);
       if (res.ok) navigate("/admin/articles");

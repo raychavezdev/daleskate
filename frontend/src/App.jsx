@@ -10,7 +10,6 @@ import {
   Routes,
   Route,
   useLocation,
-  Navigate,
 } from "react-router-dom";
 
 import ArticleFull from "./components/main/ArticleFull.jsx";
@@ -31,13 +30,7 @@ import PollList from "./components/admin/PollList.jsx";
 import PollWidget from "./components/ads/PollWidget.jsx";
 import ExclusiveArticles from "./components/admin/ExclusiveArticles.jsx";
 import ArticleStats from "./components/admin/ArticleStats.jsx";
-
-// Componente para rutas privadas
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
-  if (!token) return <Navigate to="/login" replace />;
-  return children;
-};
+import PrivateRoute from "./components/admin/PrivateRoutes.jsx";
 
 // Layout general
 function Layout({ children }) {

@@ -13,20 +13,27 @@ function assertAdminAuthTest(bool $condition, string $message): void
     }
 }
 
-function makeAdminAuthTestToken(int $id, ?string $role, string $secret): string
+function makeAdminAuthTestToken(int $id, ?string $role, string $secret, ?int $issuedAt = null, bool $includeExp = true): string
 {
     $data = ["id" => $id, "username" => "test-user"];
     if ($role !== null) {
         $data["role"] = $role;
     }
 
-    return JWT::encode(["iat" => time(), "data" => $data], $secret, "HS256");
+    $issuedAt = $issuedAt ?? time();
+    $payload = ["iat" => $issuedAt, "data" => $data];
+    if ($includeExp) {
+        $payload["exp"] = $issuedAt + DALESKATE_JWT_LIFETIME_SECONDS;
+    }
+    return JWT::encode($payload, $secret, "HS256");
 }
 
 $testSecret = "admin-endpoints-test-only-secret";
 $adminJwt = makeAdminAuthTestToken(1, "admin", $testSecret);
 $editorJwt = makeAdminAuthTestToken(2, "editor", $testSecret);
 $missingRoleJwt = makeAdminAuthTestToken(1, null, $testSecret);
+$expiredAdminJwt = makeAdminAuthTestToken(1, "admin", $testSecret, time() - DALESKATE_JWT_LIFETIME_SECONDS - 1);
+$legacyAdminJwt = makeAdminAuthTestToken(1, "admin", $testSecret, null, false);
 
 $parts = explode('.', $adminJwt);
 $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
@@ -44,6 +51,10 @@ $db->exec("CREATE TABLE effects (id INTEGER PRIMARY KEY AUTOINCREMENT)");
 assertAdminAuthTest($status === 401, "JWT ausente debe responder 401");
 [$status] = authorizeAdminRequest($db, "Bearer inválido", $testSecret);
 assertAdminAuthTest($status === 401, "JWT inválido debe responder 401");
+[$status] = authorizeAdminRequest($db, "Bearer " . $expiredAdminJwt, $testSecret);
+assertAdminAuthTest($status === 401, "JWT expirado debe responder 401");
+[$status] = authorizeAdminRequest($db, "Bearer " . $legacyAdminJwt, $testSecret);
+assertAdminAuthTest($status === 401, "JWT antiguo sin exp debe responder 401");
 [$status] = authorizeAdminRequest($db, "Bearer " . $alteredRoleJwt, $testSecret);
 assertAdminAuthTest($status === 401, "alterar el rol dentro del JWT debe invalidar la firma y responder 401");
 
@@ -144,5 +155,14 @@ $publicAdsStart = strpos($adsAdminSource, "const fetchAds");
 $publicAdsEnd = strpos($adsAdminSource, "useEffect(() =>", $publicAdsStart);
 $publicAdsFetch = substr($adsAdminSource, $publicAdsStart, $publicAdsEnd - $publicAdsStart);
 assertAdminAuthTest(strpos($publicAdsFetch, "Authorization") === false, "la lectura pública de anuncios no debe enviar JWT innecesariamente");
+
+$privateRoutesSource = file_get_contents($frontendDir . "PrivateRoutes.jsx");
+assertAdminAuthTest(strpos($privateRoutesSource, "decodedPayload.exp") !== false, "la ruta privada debe comprobar exp antes de mostrar el panel");
+assertAdminAuthTest(strpos($privateRoutesSource, 'localStorage.removeItem("token")') !== false, "la ruta privada debe borrar una sesión expirada o inválida");
+$appSource = file_get_contents(__DIR__ . "/../../frontend/src/App.jsx");
+assertAdminAuthTest(strpos($appSource, 'from "./components/admin/PrivateRoutes.jsx"') !== false, "App debe reutilizar la guarda que comprueba expiración");
+$changePasswordFrontend = file_get_contents($frontendDir . "ChangePasword.jsx");
+assertAdminAuthTest(strpos($changePasswordFrontend, "res.status === 401") !== false, "cambiar contraseña debe cerrar sesión ante JWT expirado");
+assertAdminAuthTest(strpos($changePasswordFrontend, "res.status === 403") !== false, "cambiar contraseña no debe confundir 403 con sesión expirada");
 
 fwrite(STDOUT, "OK: roles, JWT antiguos, guardas, efectos, rutas públicas y respuestas React verificados.\n");
