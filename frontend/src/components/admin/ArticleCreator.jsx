@@ -56,6 +56,9 @@ const ArticleCreator = () => {
     const fetchArticle = async () => {
       try {
         const res = await fetch(`${API_URL}/api/article_get.php?id=${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
           credentials: "include",
         });
 

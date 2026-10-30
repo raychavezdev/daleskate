@@ -1,16 +1,18 @@
 <?php
 require_once __DIR__ . "/../config/headers.php";
+require_once __DIR__ . "/../config/authentication.php";
+require_once __DIR__ . "/../config/article_access.php";
+
+$claims = validateBearerToken(getAuthorizationHeader(), $_ENV["SECRET_KEY"]);
 
 try {
-    $stmt = $conn->prepare("
-        SELECT id, title, slug, exclusive_token, created_at
-        FROM articles
-        WHERE is_exclusive = 1
-        ORDER BY created_at DESC
-    ");
+    $articles = getExclusiveArticles($conn, $claims);
 
-    $stmt->execute();
-    $articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($articles === null) {
+        http_response_code(401);
+        echo json_encode(["error" => "Token no proporcionado o inválido"]);
+        exit;
+    }
 
     echo json_encode($articles);
 } catch (PDOException $e) {
