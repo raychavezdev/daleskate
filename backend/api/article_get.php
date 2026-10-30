@@ -26,8 +26,12 @@ try {
         exit;
     }
 
-    $claims = validateBearerToken(getAuthorizationHeader(), $_ENV["SECRET_KEY"]);
-    $article = getArticleById($conn, $id, $claims !== null);
+    $article = getArticleById($conn, $id);
+
+    if ($article === null) {
+        $claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+        $article = getArticleById($conn, $id, true);
+    }
 
     if (!$article) {
         http_response_code(404);

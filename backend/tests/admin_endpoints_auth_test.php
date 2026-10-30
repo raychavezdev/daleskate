@@ -13,41 +13,70 @@ function assertAdminAuthTest(bool $condition, string $message): void
     }
 }
 
+function makeAdminAuthTestToken(int $id, ?string $role, string $secret): string
+{
+    $data = ["id" => $id, "username" => "test-user"];
+    if ($role !== null) {
+        $data["role"] = $role;
+    }
+
+    return JWT::encode(["iat" => time(), "data" => $data], $secret, "HS256");
+}
+
 $testSecret = "admin-endpoints-test-only-secret";
-$validJwt = JWT::encode([
-    "iat" => time(),
-    "data" => ["id" => 7, "username" => "test-user", "role" => "test"],
-], $testSecret, "HS256");
+$adminJwt = makeAdminAuthTestToken(1, "admin", $testSecret);
+$editorJwt = makeAdminAuthTestToken(2, "editor", $testSecret);
+$missingRoleJwt = makeAdminAuthTestToken(1, null, $testSecret);
 
-assertAdminAuthTest(validateBearerToken(null, $testSecret) === null, "solicitud sin JWT debe rechazarse");
-assertAdminAuthTest(validateBearerToken("Bearer no-es-un-jwt", $testSecret) === null, "solicitud con JWT inválido debe rechazarse");
-assertAdminAuthTest(validateBearerToken("Bearer " . $validJwt, $testSecret) !== null, "JWT válido debe permitir continuar");
-
-$tamperedParts = explode('.', $validJwt);
-$tamperedParts[2] = ($tamperedParts[2][0] === 'A' ? 'B' : 'A') . substr($tamperedParts[2], 1);
-assertAdminAuthTest(
-    validateBearerToken("Bearer " . implode('.', $tamperedParts), $testSecret) === null,
-    "JWT alterado debe rechazarse"
-);
+$parts = explode('.', $adminJwt);
+$payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+$payload["data"]["role"] = "editor";
+$parts[1] = rtrim(strtr(base64_encode(json_encode($payload)), '+/', '-_'), '=');
+$alteredRoleJwt = implode('.', $parts);
 
 $db = new PDO("sqlite::memory:");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$db->exec("CREATE TABLE effects (id INTEGER PRIMARY KEY)");
+$db->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT)");
+$db->exec("INSERT INTO users (id, role) VALUES (1, 'admin'), (2, 'editor')");
+$db->exec("CREATE TABLE effects (id INTEGER PRIMARY KEY AUTOINCREMENT)");
+
+[$status] = authorizeAdminRequest($db, null, $testSecret);
+assertAdminAuthTest($status === 401, "JWT ausente debe responder 401");
+[$status] = authorizeAdminRequest($db, "Bearer inválido", $testSecret);
+assertAdminAuthTest($status === 401, "JWT inválido debe responder 401");
+[$status] = authorizeAdminRequest($db, "Bearer " . $alteredRoleJwt, $testSecret);
+assertAdminAuthTest($status === 401, "alterar el rol dentro del JWT debe invalidar la firma y responder 401");
+
+[$status, $adminClaims] = authorizeAdminRequest($db, "Bearer " . $adminJwt, $testSecret);
+assertAdminAuthTest($status === 200 && $adminClaims->role === "admin", "JWT admin con rol actual admin debe autorizarse");
+[$status] = authorizeAdminRequest($db, "Bearer " . $editorJwt, $testSecret);
+assertAdminAuthTest($status === 403, "JWT válido con otro rol debe responder 403");
+[$status] = authorizeAdminRequest($db, "Bearer " . $missingRoleJwt, $testSecret);
+assertAdminAuthTest($status === 403, "JWT válido sin claim role debe responder 403");
+
+$oldAdminClaim = makeAdminAuthTestToken(2, "admin", $testSecret);
+[$status] = authorizeAdminRequest($db, "Bearer " . $oldAdminClaim, $testSecret);
+assertAdminAuthTest($status === 403, "claim admin antiguo debe rechazarse si la base ya tiene otro rol");
+
 $simulateAdminOperation = static function (?string $header) use ($db, $testSecret): int {
-    $claims = validateBearerToken($header, $testSecret);
-    if ($claims === null) {
-        return 401;
+    [$status] = authorizeAdminRequest($db, $header, $testSecret);
+    if ($status !== 200) {
+        return $status;
     }
 
-    $db->exec("INSERT INTO effects (id) VALUES (1)");
+    $db->exec("INSERT INTO effects DEFAULT VALUES");
     return 200;
 };
 
-assertAdminAuthTest($simulateAdminOperation(null) === 401, "operación sin JWT debe devolver 401");
-assertAdminAuthTest($simulateAdminOperation("Bearer inválido") === 401, "operación con JWT inválido debe devolver 401");
-assertAdminAuthTest((int)$db->query("SELECT COUNT(*) FROM effects")->fetchColumn() === 0, "solicitudes rechazadas no deben cambiar la base de datos");
-assertAdminAuthTest($simulateAdminOperation("Bearer " . $validJwt) === 200, "operación con JWT válido debe continuar");
-assertAdminAuthTest((int)$db->query("SELECT COUNT(*) FROM effects")->fetchColumn() === 1, "la operación autorizada puede modificar la base de prueba");
+assertAdminAuthTest($simulateAdminOperation(null) === 401, "operación sin JWT debe rechazarse");
+assertAdminAuthTest($simulateAdminOperation("Bearer " . $editorJwt) === 403, "operación con rol no admin debe rechazarse");
+assertAdminAuthTest((int)$db->query("SELECT COUNT(*) FROM effects")->fetchColumn() === 0, "operaciones rechazadas no deben producir efectos secundarios");
+assertAdminAuthTest($simulateAdminOperation("Bearer " . $adminJwt) === 200, "operación con JWT admin válido debe continuar");
+assertAdminAuthTest((int)$db->query("SELECT COUNT(*) FROM effects")->fetchColumn() === 1, "la operación autorizada debe continuar en la base de prueba");
+
+$db->exec("UPDATE users SET role = 'editor' WHERE id = 1");
+[$status] = authorizeAdminRequest($db, "Bearer " . $adminJwt, $testSecret);
+assertAdminAuthTest($status === 403, "un cambio de rol debe revocar permisos aunque el JWT antiguo siga firmado");
 
 $apiDir = __DIR__ . "/../api/";
 $adminEndpoints = [
@@ -57,20 +86,33 @@ $adminEndpoints = [
     "poll_delete.php" => "DELETE FROM polls",
     "poll_list.php" => "SELECT id, question, options, votes",
     "article_stats.php" => "SELECT",
+    "article_create.php" => "move_uploaded_file",
+    "article_edit.php" => "SELECT banner, banner_mobile, contenido",
+    "article_delete.php" => "DELETE FROM articles",
+    "article_exclusive_list.php" => 'getExclusiveArticles($conn, $claims)',
 ];
 
 foreach ($adminEndpoints as $file => $operationMarker) {
     $source = file_get_contents($apiDir . $file);
-    $guardPosition = strpos($source, '$claims = validateBearerToken');
-    $rejectPosition = $guardPosition === false ? false : strpos($source, 'if ($claims === null)', $guardPosition);
-    $exitPosition = $rejectPosition === false ? false : strpos($source, 'exit;', $rejectPosition);
+    $guardPosition = strpos($source, '$claims = requireAdmin(');
     $operationPosition = strpos($source, $operationMarker);
 
-    assertAdminAuthTest($guardPosition !== false, "$file debe usar la validación JWT compartida");
-    assertAdminAuthTest($rejectPosition !== false && $exitPosition !== false, "$file debe detener solicitudes no autorizadas");
-    assertAdminAuthTest($operationPosition !== false && $exitPosition < $operationPosition, "$file debe validar antes de consultar o modificar datos/archivos");
-    assertAdminAuthTest(strpos($source, 'http_response_code(401)', $rejectPosition) !== false, "$file debe responder 401 si falla autenticación");
+    assertAdminAuthTest($guardPosition !== false, "$file debe exigir autorización administrativa compartida");
+    assertAdminAuthTest($operationPosition !== false && $guardPosition < $operationPosition, "$file debe autorizar antes de consultar o modificar datos/archivos");
 }
+
+$changePasswordSource = file_get_contents($apiDir . "change_password.php");
+assertAdminAuthTest(strpos($changePasswordSource, 'requireAdmin(') === false, "cambiar la contraseña propia no debe exigir rol admin");
+assertAdminAuthTest(strpos($changePasswordSource, 'validateBearerToken(') !== false, "cambiar contraseña debe exigir JWT válido");
+$validateTokenSource = file_get_contents($apiDir . "validate_token.php");
+assertAdminAuthTest(strpos($validateTokenSource, 'requireAdmin(') === false, "validar un token no debe exigir rol admin");
+assertAdminAuthTest(strpos($validateTokenSource, 'validateBearerToken(') !== false, "validate_token debe reutilizar la validación JWT compartida");
+
+$articleGetSource = file_get_contents($apiDir . "article_get.php");
+$publicArticleLookup = strpos($articleGetSource, 'getArticleById($conn, $id)');
+$exclusiveAdminGate = strpos($articleGetSource, 'requireAdmin($conn, $_ENV["SECRET_KEY"])');
+assertAdminAuthTest($publicArticleLookup !== false && $exclusiveAdminGate !== false && $publicArticleLookup < $exclusiveAdminGate, "article_get debe consultar primero la vía pública y proteger los exclusivos por ID");
+assertAdminAuthTest(strpos($articleGetSource, 'getExclusiveArticleByShareToken($conn, $token)') !== false, "el acceso por enlace compartible debe conservarse");
 
 $publicEndpoints = [
     "ads_get.php" => "SELECT * FROM ads",
@@ -82,20 +124,25 @@ $publicEndpoints = [
 
 foreach ($publicEndpoints as $file => $publicMarker) {
     $source = file_get_contents($apiDir . $file);
-    assertAdminAuthTest(strpos($source, 'validateBearerToken') === false, "$file debe seguir siendo público sin JWT");
+    assertAdminAuthTest(strpos($source, 'requireAdmin(') === false, "$file debe seguir siendo público sin rol admin");
     assertAdminAuthTest(strpos($source, $publicMarker) !== false, "$file debe conservar su operación pública");
 }
 
 $frontendDir = __DIR__ . "/../../frontend/src/components/admin/";
-foreach (["AdsAdmin.jsx", "PollCreate.jsx", "PollList.jsx", "ArticleStats.jsx"] as $file) {
+$roleAwareComponents = [
+    "AdsAdmin.jsx", "PollCreate.jsx", "PollList.jsx", "ArticleStats.jsx",
+    "ArticlesAdmin.jsx", "ExclusiveArticles.jsx", "ArticleCreator.jsx",
+];
+foreach ($roleAwareComponents as $file) {
     $source = file_get_contents($frontendDir . $file);
-    assertAdminAuthTest(strpos($source, "Authorization") !== false, "$file debe enviar Authorization en llamadas protegidas");
-    assertAdminAuthTest(strpos($source, 'localStorage.getItem("token")') !== false, "$file debe reutilizar el token almacenado");
-    assertAdminAuthTest(strpos($source, 'res.status === 401') !== false, "$file debe manejar respuestas 401");
+    assertAdminAuthTest(strpos($source, "403") !== false, "$file debe diferenciar falta de permisos (403)");
+    assertAdminAuthTest(strpos($source, 'status === 401') !== false, "$file debe conservar manejo de sesión inválida (401)");
 }
 
 $adsAdminSource = file_get_contents($frontendDir . "AdsAdmin.jsx");
-$publicAdsFetch = substr($adsAdminSource, strpos($adsAdminSource, "const fetchAds"), strpos($adsAdminSource, "useEffect(() =>") - strpos($adsAdminSource, "const fetchAds"));
+$publicAdsStart = strpos($adsAdminSource, "const fetchAds");
+$publicAdsEnd = strpos($adsAdminSource, "useEffect(() =>", $publicAdsStart);
+$publicAdsFetch = substr($adsAdminSource, $publicAdsStart, $publicAdsEnd - $publicAdsStart);
 assertAdminAuthTest(strpos($publicAdsFetch, "Authorization") === false, "la lectura pública de anuncios no debe enviar JWT innecesariamente");
 
-fwrite(STDOUT, "OK: guards administrativos, rechazos sin efectos, endpoints públicos y llamadas React verificados.\n");
+fwrite(STDOUT, "OK: roles, JWT antiguos, guardas, efectos, rutas públicas y respuestas React verificados.\n");

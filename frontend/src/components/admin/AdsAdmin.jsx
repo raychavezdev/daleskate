@@ -42,6 +42,10 @@ const AdsAdmin = () => {
       navigate("/login");
       return;
     }
+    if (res.status === 403) {
+      alert("No tienes permisos para administrar anuncios.");
+      return;
+    }
 
     if (res.ok) {
       setLink("");
@@ -69,6 +73,10 @@ const AdsAdmin = () => {
     if (res.status === 401) {
       localStorage.removeItem("token");
       navigate("/login");
+      return;
+    }
+    if (res.status === 403) {
+      alert("No tienes permisos para administrar anuncios.");
       return;
     }
 

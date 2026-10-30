@@ -7,6 +7,7 @@ const FRONTEND_URL = window.location.origin;
 const ExclusiveArticles = () => {
   const [articles, setArticles] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,12 +20,26 @@ const ExclusiveArticles = () => {
         },
       });
 
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+      if (res.status === 403) {
+        setError("No tienes permisos para administrar artículos exclusivos.");
+        return;
+      }
+      if (!res.ok) {
+        setError("No se pudieron cargar los artículos exclusivos.");
+        return;
+      }
+
       const data = await res.json();
-      setArticles(data);
+      setArticles(Array.isArray(data) ? data : []);
     };
 
     fetchExclusive();
-  }, []);
+  }, [navigate]);
 
   const handleDelete = async (id) => {
     if (!confirm("¿Seguro que quieres eliminar este artículo?")) return;
@@ -32,14 +47,26 @@ const ExclusiveArticles = () => {
       method: "DELETE",
       headers: { Authorization: "Bearer " + localStorage.getItem("token") },
     });
+
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      navigate("/login");
+      return;
+    }
+    if (res.status === 403) {
+      setError("No tienes permisos para administrar artículos exclusivos.");
+      return;
+    }
+
     const data = await res.json();
     alert(data.message || data.error);
-    setArticles(articles.filter((a) => a.id !== id));
+    if (res.ok) setArticles((current) => current.filter((a) => a.id !== id));
   };
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Artículos Exclusivos</h1>
+      {error && <p className="mb-4 text-red-600" role="alert">{error}</p>}
 
       <div className="space-y-4">
         {articles.map((article) => {

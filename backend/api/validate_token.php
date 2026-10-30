@@ -1,38 +1,16 @@
 <?php
-
 require_once __DIR__ . "/../config/headers.php";
-require_once __DIR__ . "/../vendor/autoload.php";
+require_once __DIR__ . "/../config/authentication.php";
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
+$claims = validateBearerToken(getAuthorizationHeader(), $_ENV["SECRET_KEY"]);
 
-
-$headers = getallheaders();
-if (!isset($headers['Authorization'])) {
+if ($claims === null) {
     http_response_code(401);
-    echo json_encode(["error" => "Token no proporcionado"]);
+    echo json_encode(["error" => "Token no proporcionado o inválido"]);
     exit;
 }
 
-$authHeader = $headers['Authorization'];
-list($type, $token) = explode(" ", $authHeader);
-
-if ($type !== "Bearer" || !$token) {
-    http_response_code(401);
-    echo json_encode(["error" => "Token inválido"]);
-    exit;
-}
-
-
-$secret_key = $_ENV["SECRET_KEY"]; 
-
-try {
-    $decoded = JWT::decode($token, new Key($secret_key, 'HS256'));
-    echo json_encode([
-        "message" => "Token válido",
-        "user" => $decoded->data
-    ]);
-} catch (Exception $e) {
-    http_response_code(401);
-    echo json_encode(["error" => "Token inválido", "detail" => $e->getMessage()]);
-}
+echo json_encode([
+    "message" => "Token válido",
+    "user" => $claims,
+]);

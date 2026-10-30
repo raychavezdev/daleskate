@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 const ArticleStats = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -17,6 +18,10 @@ const ArticleStats = () => {
         if (res.status === 401) {
           localStorage.removeItem("token");
           navigate("/login");
+          return;
+        }
+        if (res.status === 403) {
+          setError("No tienes permisos para ver las estadísticas.");
           return;
         }
 
@@ -35,6 +40,7 @@ const ArticleStats = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Estadísticas de artículos</h1>
+      {error && <p className="mb-4 text-red-600" role="alert">{error}</p>}
 
       <table className="w-full bg-white shadow rounded">
         <thead>

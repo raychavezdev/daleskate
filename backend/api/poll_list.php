@@ -2,12 +2,7 @@
 require_once __DIR__ . "/../config/headers.php";
 require_once __DIR__ . "/../config/authentication.php";
 
-$claims = validateBearerToken(getAuthorizationHeader(), $_ENV["SECRET_KEY"]);
-if ($claims === null) {
-    http_response_code(401);
-    echo json_encode(["error" => "Token no proporcionado o inválido"]);
-    exit;
-}
+$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
 
 try {
     $stmt = $conn->query("SELECT id, question, options, votes, created_at, expires_at FROM polls ORDER BY created_at DESC");

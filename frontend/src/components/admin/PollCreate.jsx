@@ -50,6 +50,10 @@ const PollCreate = () => {
         navigate("/login");
         return;
       }
+      if (res.status === 403) {
+        setMessage("No tienes permisos para crear encuestas.");
+        return;
+      }
 
       const data = await res.json();
 

@@ -19,6 +19,10 @@ const PollList = () => {
         navigate("/login");
         return;
       }
+      if (res.status === 403) {
+        setMessage("No tienes permisos para ver las encuestas.");
+        return;
+      }
 
       const data = await res.json();
       if (data.success) {
@@ -46,6 +50,10 @@ const PollList = () => {
       if (res.status === 401) {
         localStorage.removeItem("token");
         navigate("/login");
+        return;
+      }
+      if (res.status === 403) {
+        setMessage("No tienes permisos para eliminar encuestas.");
         return;
       }
 

@@ -32,6 +32,8 @@ $db->exec(
         exclusive_token TEXT
     )"
 );
+$db->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT)");
+$db->exec("INSERT INTO users (id, role) VALUES (1, 'admin'), (2, 'editor')");
 
 $insert = $db->prepare(
     "INSERT INTO articles
@@ -52,10 +54,12 @@ $insert->execute([
 $testSecret = "article-access-test-only-secret";
 $validJwt = JWT::encode([
     "iat" => time(),
-    "data" => ["id" => 1, "username" => "test-admin", "role" => "test"],
+    "data" => ["id" => 1, "username" => "test-admin", "role" => "admin"],
 ], $testSecret, "HS256");
-$validClaims = validateBearerToken("Bearer " . $validJwt, $testSecret);
+$adminAuthorization = authorizeAdminRequest($db, "Bearer " . $validJwt, $testSecret);
+$validClaims = $adminAuthorization[1];
 assertArticleAccessTest($validClaims !== null, "JWT válido debe verificarse");
+assertArticleAccessTest($adminAuthorization[0] === 200, "rol admin actual debe autorizar la edición exclusiva");
 assertArticleAccessTest(validateBearerToken(null, $testSecret) === null, "JWT ausente debe rechazarse");
 assertArticleAccessTest(validateBearerToken("Basic " . $validJwt, $testSecret) === null, "esquema no Bearer debe rechazarse");
 assertArticleAccessTest(validateBearerToken("Bearer token-inválido", $testSecret) === null, "JWT malformado debe rechazarse");
@@ -69,8 +73,15 @@ $publicArticle = getArticleById($db, 10);
 assertArticleAccessTest($publicArticle !== null, "artículo público por ID debe estar disponible");
 assertArticleAccessTest(!array_key_exists("exclusive_token", $publicArticle), "respuesta de artículo por ID no debe incluir token exclusivo");
 assertArticleAccessTest(getArticleById($db, 20) === null, "artículo exclusivo por ID sin JWT debe ocultarse");
-$adminArticle = getArticleById($db, 20, $validClaims !== null);
+$adminArticle = getArticleById($db, 20, $adminAuthorization[0] === 200);
 assertArticleAccessTest($adminArticle !== null, "artículo exclusivo por ID con JWT válido debe estar disponible");
+$editorJwt = JWT::encode([
+    "iat" => time(),
+    "data" => ["id" => 2, "username" => "test-editor", "role" => "editor"],
+], $testSecret, "HS256");
+$editorAuthorization = authorizeAdminRequest($db, "Bearer " . $editorJwt, $testSecret);
+assertArticleAccessTest($editorAuthorization[0] === 403, "rol no administrativo no debe autorizar acceso exclusivo por ID");
+assertArticleAccessTest(getArticleById($db, 20, $editorAuthorization[0] === 200) === null, "JWT de editor no debe cargar artículo exclusivo por ID");
 
 $sharedArticle = getExclusiveArticleByShareToken($db, "share-token-ficticio");
 assertArticleAccessTest($sharedArticle !== null, "token compartible válido debe dar acceso al artículo");

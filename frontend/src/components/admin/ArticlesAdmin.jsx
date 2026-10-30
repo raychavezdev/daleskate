@@ -22,9 +22,20 @@ const ArticlesAdmin = () => {
       method: "DELETE",
       headers: { Authorization: "Bearer " + localStorage.getItem("token") },
     });
+
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      navigate("/login");
+      return;
+    }
+    if (res.status === 403) {
+      alert("No tienes permisos para administrar artículos.");
+      return;
+    }
+
     const data = await res.json();
     alert(data.message || data.error);
-    setArticles(articles.filter((a) => a.id !== id));
+    if (res.ok) setArticles((current) => current.filter((a) => a.id !== id));
   };
 
   return (

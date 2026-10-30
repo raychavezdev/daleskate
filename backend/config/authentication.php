@@ -38,6 +38,58 @@ function validateBearerToken(?string $authorizationHeader, string $secretKey): ?
     }
 }
 
+function authorizeAdminClaims(PDO $conn, ?object $claims): array
+{
+    if ($claims === null) {
+        return [401, null];
+    }
+
+    if (!isset($claims->id) || !isset($claims->role) || $claims->role !== 'admin') {
+        return [403, null];
+    }
+
+    try {
+        $stmt = $conn->prepare("SELECT role FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([":id" => $claims->id]);
+        $currentRole = $stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return [500, null];
+    }
+
+    if ($currentRole !== 'admin') {
+        return [403, null];
+    }
+
+    return [200, $claims];
+}
+
+function authorizeAdminRequest(PDO $conn, ?string $authorizationHeader, string $secretKey): array
+{
+    $claims = validateBearerToken($authorizationHeader, $secretKey);
+
+    return authorizeAdminClaims($conn, $claims);
+}
+
+function requireAdmin(PDO $conn, string $secretKey): object
+{
+    [$statusCode, $claims] = authorizeAdminRequest(
+        $conn,
+        getAuthorizationHeader(),
+        $secretKey
+    );
+
+    if ($statusCode !== 200) {
+        http_response_code($statusCode);
+        $error = $statusCode === 401
+            ? "Token no proporcionado o inválido"
+            : ($statusCode === 403 ? "Permisos insuficientes" : "Error interno del servidor");
+        echo json_encode(["error" => $error]);
+        exit;
+    }
+
+    return $claims;
+}
+
 function authenticateRequest(PDO $conn, $data, string $secretKey): array
 {
     try {

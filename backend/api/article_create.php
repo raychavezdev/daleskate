@@ -4,6 +4,7 @@ require_once __DIR__ . "/../vendor/autoload.php";
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+require_once __DIR__ . "/../config/authentication.php";
 
 function createSlug($text)
 {
@@ -17,35 +18,7 @@ function createSlug($text)
 
 
 
-$headers = getallheaders();
-if (!isset($headers['Authorization'])) {
-    http_response_code(401);
-    echo json_encode(["error" => "Token no proporcionado"]);
-    exit;
-}
-
-$authHeader = $headers['Authorization'];
-$parts = explode(" ", $authHeader);
-$type = $parts[0] ?? '';
-$token = $parts[1] ?? '';
-
-if ($type !== "Bearer" || !$token) {
-    http_response_code(401);
-    echo json_encode(["error" => "Token inválido"]);
-    exit;
-}
-
-$secret_key = $_ENV["SECRET_KEY"];
-
-try {
-    $decoded = JWT::decode($token, new Key($secret_key, 'HS256'));
-    $user_id = $decoded->data->id;
-} catch (Exception $e) {
-    http_response_code(401);
-    echo json_encode(["error" => "Token inválido"]);
-    exit;
-}
-
+$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
 $title = $_POST['title'] ?? null;
 $slug = createSlug($title);
 $tags = $_POST['tags'] ?? null;

@@ -62,6 +62,16 @@ const ArticleCreator = () => {
           credentials: "include",
         });
 
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
+        if (res.status === 403) {
+          alert("No tienes permisos para editar artículos.");
+          return;
+        }
+
         if (!res.ok) {
           throw new Error("No se pudo cargar el artículo");
         }
@@ -136,7 +146,7 @@ const ArticleCreator = () => {
     };
 
     fetchArticle();
-  }, [id]);
+  }, [id, navigate]);
 
   const youtubeEmbed = (url) => {
     if (!url) return "";
@@ -385,6 +395,16 @@ const ArticleCreator = () => {
         },
         body: formData,
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+      if (response.status === 403) {
+        alert("No tienes permisos para administrar artículos.");
+        return;
+      }
 
       const data = await response.json();
 
