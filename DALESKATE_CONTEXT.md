@@ -36,7 +36,7 @@ DaleSkate es una plataforma para una revista digital de skateboarding. El reposi
 
 ## Comunicación, datos y configuración
 
-El frontend forma URLs como `${VITE_API_URL}/api/<archivo>.php`. Los endpoints usan `config/headers.php`, que carga la conexión y configura JSON y CORS para un único origen `FRONTEND_URL` (por defecto local en el código), permite credenciales y los métodos GET, POST, OPTIONS y DELETE. El acceso a datos utiliza PDO/MySQL y consultas preparadas en varias operaciones. Los nombres de tablas inferibles en consultas son `articles`, `article_views`, `ads`, `polls` y `users`; columnas, tipos, índices y restricciones dependen de un esquema no incluido.
+El frontend forma URLs como `${VITE_API_URL}/api/<archivo>.php`. Los endpoints usan `config/headers.php`, que carga la conexión y configura JSON y CORS para un único origen `FRONTEND_URL` (por defecto local en el código), permite credenciales y los métodos GET, POST, OPTIONS y DELETE. El acceso a datos utiliza PDO/MySQL y consultas preparadas en varias operaciones. Las consultas identifican `articles`, `article_views`, `ads`, `polls` y `users`; sus columnas productivas, tipos e índices no se pueden confirmar porque no hay esquema de producción versionado. `backend/tests/fixtures/integration_schema.sql` es solo un esquema aproximado para la base aislada `daleskate_test`, no una migración ni una copia de producción. Las instrucciones locales están en `backend/tests/INTEGRATION.md`.
 
 Variables leídas por el código (documentadas solo por nombre y función):
 
