@@ -6,6 +6,9 @@ use Firebase\JWT\Key;
 function getAuthorizationHeader(): ?string
 {
     $headers = function_exists('getallheaders') ? getallheaders() : [];
+    if (!is_array($headers)) {
+        $headers = [];
+    }
 
     foreach ($headers as $name => $value) {
         if (strcasecmp($name, 'Authorization') === 0 && is_string($value)) {

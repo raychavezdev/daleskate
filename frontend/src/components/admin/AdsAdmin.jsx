@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const AdsAdmin = () => {
+  const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [link, setLink] = useState("");
   const [image, setImage] = useState(null);
@@ -30,9 +32,16 @@ const AdsAdmin = () => {
     setLoading(true);
     const res = await fetch(`${API_URL}/api/ads_create.php`, {
       method: "POST",
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: formData,
     });
     setLoading(false);
+
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      navigate("/login");
+      return;
+    }
 
     if (res.ok) {
       setLink("");
@@ -50,9 +59,18 @@ const AdsAdmin = () => {
 
     const res = await fetch(`${API_URL}/api/ads_delete.php`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
       body: JSON.stringify({ id }),
     });
+
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      navigate("/login");
+      return;
+    }
 
     const data = await res.json();
 

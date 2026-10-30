@@ -1,14 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const PollList = () => {
+  const navigate = useNavigate();
   const [polls, setPolls] = useState([]);
   const [message, setMessage] = useState("");
 
-  const fetchPolls = async () => {
+  const fetchPolls = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/poll_list.php`);
+      const res = await fetch(`${API_URL}/api/poll_list.php`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setPolls(data.polls);
@@ -18,16 +29,26 @@ const PollList = () => {
     } catch {
       setMessage("Error al conectar con el servidor");
     }
-  };
+  }, [navigate]);
 
   const deletePoll = async (id) => {
     if (!confirm("¿Seguro que deseas eliminar esta encuesta?")) return;
     try {
       const res = await fetch(`${API_URL}/api/poll_delete.php`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
         body: JSON.stringify({ id }),
       });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setMessage("Encuesta eliminada correctamente");
@@ -42,7 +63,7 @@ const PollList = () => {
 
   useEffect(() => {
     fetchPolls();
-  }, []);
+  }, [fetchPolls]);
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-md">
