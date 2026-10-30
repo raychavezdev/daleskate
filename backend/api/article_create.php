@@ -18,7 +18,7 @@ function createSlug($text)
 
 
 
-$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+$claims = requireAdmin($conn, requireSecretKey());
 $title = $_POST['title'] ?? null;
 $slug = createSlug($title);
 $tags = $_POST['tags'] ?? null;

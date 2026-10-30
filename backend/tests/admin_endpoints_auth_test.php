@@ -109,6 +109,7 @@ foreach ($adminEndpoints as $file => $operationMarker) {
     $operationPosition = strpos($source, $operationMarker);
 
     assertAdminAuthTest($guardPosition !== false, "$file debe exigir autorización administrativa compartida");
+    assertAdminAuthTest(strpos($source, 'requireSecretKey()') !== false, "$file debe fallar de forma segura si falta SECRET_KEY");
     assertAdminAuthTest($operationPosition !== false && $guardPosition < $operationPosition, "$file debe autorizar antes de consultar o modificar datos/archivos");
 }
 
@@ -121,7 +122,7 @@ assertAdminAuthTest(strpos($validateTokenSource, 'validateBearerToken(') !== fal
 
 $articleGetSource = file_get_contents($apiDir . "article_get.php");
 $publicArticleLookup = strpos($articleGetSource, 'getArticleById($conn, $id)');
-$exclusiveAdminGate = strpos($articleGetSource, 'requireAdmin($conn, $_ENV["SECRET_KEY"])');
+$exclusiveAdminGate = strpos($articleGetSource, 'requireAdmin($conn, requireSecretKey())');
 assertAdminAuthTest($publicArticleLookup !== false && $exclusiveAdminGate !== false && $publicArticleLookup < $exclusiveAdminGate, "article_get debe consultar primero la vía pública y proteger los exclusivos por ID");
 assertAdminAuthTest(strpos($articleGetSource, 'getExclusiveArticleByShareToken($conn, $token)') !== false, "el acceso por enlace compartible debe conservarse");
 
@@ -164,5 +165,8 @@ assertAdminAuthTest(strpos($appSource, 'from "./components/admin/PrivateRoutes.j
 $changePasswordFrontend = file_get_contents($frontendDir . "ChangePasword.jsx");
 assertAdminAuthTest(strpos($changePasswordFrontend, "res.status === 401") !== false, "cambiar contraseña debe cerrar sesión ante JWT expirado");
 assertAdminAuthTest(strpos($changePasswordFrontend, "res.status === 403") !== false, "cambiar contraseña no debe confundir 403 con sesión expirada");
+$bootstrapSource = file_get_contents(__DIR__ . "/../config/bootstrap.php");
+assertAdminAuthTest(strpos($bootstrapSource, "http_response_code(500)") !== false, "la falta de SECRET_KEY debe responder con error interno controlado");
+assertAdminAuthTest(strpos($bootstrapSource, "Error interno del servidor") !== false, "el error de configuración no debe revelar detalles internos");
 
 fwrite(STDOUT, "OK: roles, JWT antiguos, guardas, efectos, rutas públicas y respuestas React verificados.\n");

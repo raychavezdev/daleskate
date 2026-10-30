@@ -8,7 +8,7 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 
-$claims = validateBearerToken(getAuthorizationHeader(), $_ENV["SECRET_KEY"]);
+$claims = validateBearerToken(getAuthorizationHeader(), requireSecretKey());
 if ($claims === null) {
     http_response_code(401);
     echo json_encode(["error" => "Token no proporcionado o inválido"]);

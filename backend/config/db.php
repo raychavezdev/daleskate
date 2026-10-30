@@ -8,8 +8,6 @@ $db_name = $_ENV['DB_NAME'] ?? 'daleskate';
 $username = $_ENV['DB_USER'] ?? 'root';
 $password = $_ENV['DB_PASS'] ?? '';
 
-define("SECRET_KEY", $_ENV['SECRET_KEY'] ?? 'mi_clave_ultra_secreta_2025');
-
 try {
     $conn = new PDO(
         "mysql:host=$host;port=$port;dbname=$db_name;charset=utf8mb4",

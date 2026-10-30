@@ -8,7 +8,7 @@ use Firebase\JWT\Key;
 require_once __DIR__ . "/../config/authentication.php";
 
 
-$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+$claims = requireAdmin($conn, requireSecretKey());
 $id = $_POST['id'] ?? null;
 $title = $_POST['title'] ?? null;
 $tags = $_POST['tags'] ?? null;

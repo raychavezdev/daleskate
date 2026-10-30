@@ -29,7 +29,7 @@ try {
     $article = getArticleById($conn, $id);
 
     if ($article === null) {
-        $claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+        $claims = requireAdmin($conn, requireSecretKey());
         $article = getArticleById($conn, $id, true);
     }
 

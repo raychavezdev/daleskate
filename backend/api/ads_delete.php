@@ -2,7 +2,7 @@
 require_once __DIR__ . "/../config/headers.php";
 require_once __DIR__ . "/../config/authentication.php";
 
-$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+$claims = requireAdmin($conn, requireSecretKey());
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents("php://input"), true);

@@ -6,7 +6,7 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 require_once __DIR__ . "/../config/authentication.php";
 
-$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+$claims = requireAdmin($conn, requireSecretKey());
 $id = $_GET['id'] ?? null;
 if (!$id) {
     http_response_code(400);

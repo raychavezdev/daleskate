@@ -3,7 +3,7 @@
 require_once __DIR__ . "/../config/headers.php";
 require_once __DIR__ . "/../config/authentication.php";
 
-$claims = requireAdmin($conn, $_ENV["SECRET_KEY"]);
+$claims = requireAdmin($conn, requireSecretKey());
 
 try {
 

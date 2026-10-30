@@ -2,7 +2,7 @@
 require_once __DIR__ . "/../config/headers.php";
 require_once __DIR__ . "/../config/authentication.php";
 
-$claims = validateBearerToken(getAuthorizationHeader(), $_ENV["SECRET_KEY"]);
+$claims = validateBearerToken(getAuthorizationHeader(), requireSecretKey());
 
 if ($claims === null) {
     http_response_code(401);
