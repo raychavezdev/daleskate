@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import AdminSection, { AdminEmptyState } from "./AdminSection.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -74,78 +75,52 @@ const PollList = () => {
   }, [fetchPolls]);
 
   return (
-    <div className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Encuestas</h2>
-      {message && (
-        <p
-          className={`mb-4 p-2 rounded ${
-            message.includes("correctamente")
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}
-        >
-          {message}
-        </p>
-      )}
-      {polls.length === 0 ? (
-        <p>No hay encuestas creadas.</p>
-      ) : (
-        <div className="space-y-4">
-          {polls.map((poll) => (
-            <div
-              key={poll.id}
-              className="border border-gray-200 rounded-lg p-4 shadow-sm"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold">{poll.question}</h3>
-                <button
-                  onClick={() => deletePoll(poll.id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Eliminar
-                </button>
-              </div>
-
-              <ul className="space-y-1 mb-2">
-                {poll.options.map((opt, i) => {
-                  const votes = poll.votes?.[opt] || 0;
-                  const totalVotes = Object.values(poll.votes || {}).reduce(
-                    (sum, v) => sum + v,
-                    0
-                  );
-                  const percent = totalVotes
-                    ? Math.round((votes / totalVotes) * 100)
-                    : 0;
-
-                  return (
-                    <li
-                      key={i}
-                      className="flex justify-between border-b border-gray-100 pb-1 text-sm"
-                    >
-                      <span>{opt}</span>
-                      <span className="text-gray-600">
-                        {votes} votos ({percent}%)
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <p className="text-xs text-gray-500">
-                Creada: {new Date(poll.created_at).toLocaleDateString("es-MX")}
-                {poll.expires_at && (
-                  <>
-                    {" "}
-                    | Expira:{" "}
-                    {new Date(poll.expires_at).toLocaleDateString("es-MX")}
-                  </>
-                )}
-              </p>
-            </div>
-          ))}
+    <AdminSection title="Encuestas" subtitle="Consulta la participación y administra las preguntas de la comunidad.">
+      {message && <p className={`rounded-xl border p-3 text-sm ${message.includes("correctamente") ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`} role="status">{message}</p>}
+      <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-end justify-between">
+          <div>
+            <p className="font-geistmono text-[10px] uppercase tracking-[0.18em] text-stone-500">Participación</p>
+            <h2 className="mt-1 font-spectral text-2xl text-stone-900">Encuestas registradas</h2>
+          </div>
+          <span className="rounded-full bg-stone-100 px-3 py-1 font-geistmono text-xs text-stone-700">{polls.length}</span>
         </div>
-      )}
-    </div>
+        {polls.length === 0 ? <AdminEmptyState title="Todavía no hay encuestas">Crea una encuesta para invitar a la comunidad a participar.</AdminEmptyState> : (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {polls.map((poll) => {
+              const totalVotes = Object.values(poll.votes || {}).reduce((sum, votes) => sum + votes, 0);
+              return (
+                <article key={poll.id} className="rounded-2xl border border-stone-200 bg-stone-50/70 p-5">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <span className="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-800">{totalVotes} votos</span>
+                      <h3 className="mt-3 font-spectral text-xl text-stone-900">{poll.question}</h3>
+                    </div>
+                    <button onClick={() => deletePoll(poll.id)} className="shrink-0 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-600 transition hover:border-red-300 hover:text-red-700">Eliminar</button>
+                  </div>
+                  <ul className="space-y-3">
+                    {poll.options.map((option, index) => {
+                      const votes = poll.votes?.[option] || 0;
+                      const percent = totalVotes ? Math.round((votes / totalVotes) * 100) : 0;
+                      return (
+                        <li key={index}>
+                          <div className="mb-1 flex justify-between gap-4 text-xs text-stone-600"><span>{option}</span><span>{votes} · {percent}%</span></div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-red-700" style={{ width: `${percent}%` }} /></div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="mt-4 border-t border-stone-200 pt-3 text-xs text-stone-500">
+                    Creada: {new Date(poll.created_at).toLocaleDateString("es-MX")}
+                    {poll.expires_at && ` · Expira: ${new Date(poll.expires_at).toLocaleDateString("es-MX")}`}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </AdminSection>
   );
 };
 

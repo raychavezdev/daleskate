@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AdminSection, { AdminEmptyState } from "./AdminSection.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -13,22 +14,17 @@ const AdsAdmin = () => {
   const fetchAds = async () => {
     const res = await fetch(`${API_URL}/api/ads_get.php`);
     const data = await res.json();
-    setAds(data);
+    setAds(Array.isArray(data) ? data : []);
   };
 
-  useEffect(() => {
-    fetchAds();
-  }, []);
+  useEffect(() => { fetchAds(); }, []);
 
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!image || !link) return;
-
     const formData = new FormData();
     formData.append("image", image);
     formData.append("link", link);
-
     setLoading(true);
     const res = await fetch(`${API_URL}/api/ads_create.php`, {
       method: "POST",
@@ -36,7 +32,6 @@ const AdsAdmin = () => {
       body: formData,
     });
     setLoading(false);
-
     if (res.status === 401) {
       localStorage.removeItem("token");
       navigate("/login");
@@ -46,30 +41,21 @@ const AdsAdmin = () => {
       alert("No tienes permisos para administrar anuncios.");
       return;
     }
-
     if (res.ok) {
       setLink("");
       setImage(null);
       fetchAds();
-      alert("✅ Anuncio subido correctamente");
-    } else {
-      alert("❌ Error al subir el anuncio");
-    }
+      alert("Anuncio subido correctamente");
+    } else alert("No se pudo subir el anuncio");
   };
 
-  
   const handleDelete = async (id) => {
     if (!confirm("¿Seguro que quieres eliminar este anuncio?")) return;
-
     const res = await fetch(`${API_URL}/api/ads_delete.php`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: JSON.stringify({ id }),
     });
-
     if (res.status === 401) {
       localStorage.removeItem("token");
       navigate("/login");
@@ -79,87 +65,57 @@ const AdsAdmin = () => {
       alert("No tienes permisos para administrar anuncios.");
       return;
     }
-
     const data = await res.json();
-
-    if (data.success) {
-      setAds((prev) => prev.filter((ad) => ad.id !== id));
-      alert("🗑️ Anuncio eliminado correctamente");
-    } else {
-      alert("❌ No se pudo eliminar el anuncio");
-    }
+    if (data.success) setAds((current) => current.filter((ad) => ad.id !== id));
+    else alert("No se pudo eliminar el anuncio");
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Publicidad</h1>
-
-      {}
-      <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-        <div>
-          <label className="block text-sm font-medium mb-1">Enlace</label>
-          <input
-            type="url"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            className="border p-2 w-full rounded"
-            placeholder="https://ejemplo.com"
-            required
-          />
+    <AdminSection title="Publicidad" subtitle="Administra las piezas publicitarias que aparecen en DaleSkate.">
+      <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5">
+          <p className="font-geistmono text-[10px] uppercase tracking-[0.18em] text-red-700">Nueva pieza</p>
+          <h2 className="mt-1 font-spectral text-xl text-stone-900">Subir anuncio</h2>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Imagen del anuncio
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {loading ? "Subiendo..." : "Subir anuncio"}
-        </button>
-      </form>
-
-      {}
-      <h2 className="text-xl font-semibold mb-2">Anuncios actuales</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {ads.map((ad) => (
-          <div
-            key={ad.id}
-            className="border rounded-lg overflow-hidden shadow relative"
-          >
-            <img
-              src={`${API_URL}/uploads/ads/${ad.image}`}
-              alt="Anuncio"
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-2 text-sm">
-              <a
-                href={ad.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline break-all"
-              >
-                {ad.link}
-              </a>
-            </div>
-            <button
-              onClick={() => handleDelete(ad.id)}
-              className="absolute top-2 right-2 bg-red-600 text-white rounded-full px-2 py-1 text-xs hover:bg-red-700"
-            >
-              ✕
-            </button>
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-600">Enlace</label>
+            <input type="url" value={link} onChange={(event) => setLink(event.target.value)} className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm outline-none transition focus:border-red-600 focus:bg-white" placeholder="https://ejemplo.com" required />
           </div>
-        ))}
-      </div>
-    </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-600">Imagen del anuncio</label>
+            <input type="file" accept="image/*" onChange={(event) => setImage(event.target.files[0])} className="block w-full rounded-xl border border-stone-200 bg-stone-50 p-2 text-xs text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white" required />
+          </div>
+          <button type="submit" disabled={loading} className="rounded-xl bg-red-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400">
+            {loading ? "Subiendo…" : "Subir anuncio"}
+          </button>
+        </form>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="font-geistmono text-[10px] uppercase tracking-[0.18em] text-stone-500">Biblioteca</p>
+            <h2 className="mt-1 font-spectral text-2xl text-stone-900">Anuncios actuales</h2>
+          </div>
+          <span className="rounded-full bg-stone-200 px-3 py-1 font-geistmono text-xs text-stone-700">{ads.length}</span>
+        </div>
+        {ads.length === 0 ? <AdminEmptyState title="Aún no hay anuncios">Cuando agregues una pieza publicitaria, aparecerá aquí.</AdminEmptyState> : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {ads.map((ad) => (
+              <article key={ad.id} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+                <img src={`${API_URL}/uploads/ads/${ad.image}`} alt="Anuncio" className="h-48 w-full bg-stone-100 object-cover" />
+                <div className="p-4">
+                  <p className="mb-2 font-geistmono text-[9px] uppercase tracking-[0.16em] text-stone-400">Publicidad · #{ad.id}</p>
+                  <a href={ad.link} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-stone-700 underline decoration-stone-300 underline-offset-4 hover:text-red-800">{ad.link}</a>
+                  <button onClick={() => handleDelete(ad.id)} className="mt-4 rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:border-red-300 hover:text-red-700">Eliminar anuncio</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </AdminSection>
   );
 };
 

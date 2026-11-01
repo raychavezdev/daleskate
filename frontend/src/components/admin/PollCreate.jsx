@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AdminSection from "./AdminSection.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -71,14 +72,15 @@ const PollCreate = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Crear Encuesta</h2>
+    <AdminSection title="Crear encuesta" subtitle="Formula una pregunta clara y agrega opciones para la comunidad.">
+    <div className="max-w-3xl rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7">
+      <p className="mb-5 font-geistmono text-[10px] uppercase tracking-[0.18em] text-red-700">Nueva participación</p>
       {message && (
         <p
-          className={`mb-4 p-2 rounded ${
+          className={`mb-4 rounded-xl border p-3 text-sm ${
             message.includes("correctamente")
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
           }`}
         >
           {message}
@@ -91,7 +93,7 @@ const PollCreate = () => {
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm outline-none focus:border-red-600 focus:bg-white"
           />
         </div>
 
@@ -103,12 +105,12 @@ const PollCreate = () => {
                 type="text"
                 value={opt}
                 onChange={(e) => handleOptionChange(i, e.target.value)}
-                className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm outline-none focus:border-red-600 focus:bg-white"
               />
               <button
                 type="button"
                 onClick={() => removeOption(i)}
-                className="ml-2 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                className="ml-2 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-600 hover:border-red-300 hover:text-red-700"
               >
                 X
               </button>
@@ -117,7 +119,7 @@ const PollCreate = () => {
           <button
             type="button"
             onClick={addOption}
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-2 rounded-lg border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             Agregar opción
           </button>
@@ -129,18 +131,19 @@ const PollCreate = () => {
             type="date"
             value={expiresAt}
             onChange={(e) => setExpiresAt(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm outline-none focus:border-red-600 focus:bg-white"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full px-4 py-2 bg-green-500 text-white font-semibold rounded hover:bg-green-600"
+          className="w-full rounded-xl bg-red-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-800"
         >
           Crear Encuesta
         </button>
       </form>
     </div>
+    </AdminSection>
   );
 };
 

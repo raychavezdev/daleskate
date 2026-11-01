@@ -1,11 +1,13 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import AdminSection, { AdminActionLink, AdminEmptyState } from "./AdminSection.jsx";
 
 const ArticlesAdmin = () => {
   const [articles, setArticles] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [searchParams] = useSearchParams();
+  const [filter, setFilter] = useState(searchParams.get("estado") === "draft" ? "draft" : "all");
   const navigate = useNavigate();
 
   const fetchArticles = async () => {
@@ -28,7 +30,6 @@ const ArticlesAdmin = () => {
 
   useEffect(() => {
     fetchArticles().catch((error) => alert(error.message));
-    // fetchArticles reads the current session and navigation handler on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,50 +86,53 @@ const ArticlesAdmin = () => {
   };
 
   return (
-    <div className="p-6">
-      <button
-        onClick={() => navigate("/admin/articles/create")}
-        className="bg-green-600 text-white px-4 py-2 rounded mb-4"
-      >
-        Crear Artículo
-      </button>
-
-      <div className="mb-4 flex gap-2" role="group" aria-label="Filtrar artículos">
-        {[["all", "Todos"], ["published", "Publicados"], ["draft", "Borradores"]].map(([value, label]) => (
-          <button key={value} type="button" onClick={() => setFilter(value)} aria-pressed={filter === value}
-            className={`px-3 py-1 rounded ${filter === value ? "bg-gray-800 text-white" : "bg-gray-200"}`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        {visibleArticles.map((article) => (
-          <div key={article.id} className="flex justify-between items-center border p-3 rounded">
-            <div>
-              <h2 className="font-bold">{article.title || "Sin título"}</h2>
-              <p className="text-sm">{article.tags}</p>
-              <span className={`inline-block mt-1 rounded px-2 py-0.5 text-xs ${article.status === "draft" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800"}`}>
-                {article.status === "draft" ? "Borrador" : "Publicado"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => navigate(`/admin/articles/edit/${article.id}`)} className="bg-blue-600 text-white px-3 py-1 rounded">
-                {article.status === "draft" ? "Editar / publicar" : "Editar"}
-              </button>
-              {article.status === "published" && (
-                <button onClick={() => returnToDraft(article)} className="bg-amber-600 text-white px-3 py-1 rounded">
-                  Devolver a borrador
-                </button>
-              )}
-              <button onClick={() => handleDelete(article.id)} className="bg-red-600 text-white px-3 py-1 rounded">
-                Eliminar
-              </button>
-            </div>
+    <AdminSection title="Artículos" subtitle="Organiza las historias publicadas y continúa trabajando en tus borradores." action={<AdminActionLink to="/admin/articles/create">Crear artículo <span className="ml-2" aria-hidden="true">＋</span></AdminActionLink>}>
+      <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-stone-900">Biblioteca editorial</p>
+            <p className="text-xs text-stone-500">{visibleArticles.length} {filter === "draft" ? "borradores" : filter === "published" ? "publicados" : "artículos"}</p>
           </div>
-        ))}
+          <div className="flex gap-1 rounded-xl bg-stone-100 p-1" role="group" aria-label="Filtrar artículos">
+            {[["all", "Todos"], ["published", "Publicados"], ["draft", "Borradores"]].map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setFilter(value)} aria-pressed={filter === value}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${filter === value ? "bg-stone-950 text-white shadow-sm" : "text-stone-600 hover:bg-white"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {visibleArticles.length === 0 ? (
+          <AdminEmptyState title={filter === "draft" ? "No hay borradores" : "Todavía no hay artículos"}>
+            {filter === "draft" ? "Los artículos guardados para continuar después aparecerán aquí." : "Crea un artículo para empezar a construir la revista."}
+          </AdminEmptyState>
+        ) : (
+          <div className="divide-y divide-stone-100">
+            {visibleArticles.map((article) => (
+              <article key={article.id} className="flex flex-col gap-4 py-4 first:pt-1 last:pb-1 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="truncate font-semibold text-stone-900">{article.title || "Sin título"}</h2>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${article.status === "draft" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                      {article.status === "draft" ? "Borrador" : "Publicado"}
+                    </span>
+                    {Number(article.is_exclusive) === 1 && <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-stone-600">Exclusivo</span>}
+                  </div>
+                  <p className="mt-1 truncate text-sm text-stone-500">{article.tags || "Sin tags"}</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button onClick={() => navigate(`/admin/articles/edit/${article.id}`)} className="rounded-lg bg-stone-950 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-red-800">
+                    {article.status === "draft" ? "Editar / publicar" : "Editar"}
+                  </button>
+                  {article.status === "published" && <button onClick={() => returnToDraft(article)} className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-50">Devolver a borrador</button>}
+                  <button onClick={() => handleDelete(article.id)} className="rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:border-red-300 hover:text-red-700">Eliminar</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </AdminSection>
   );
 };
 

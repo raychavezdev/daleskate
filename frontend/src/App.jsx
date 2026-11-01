@@ -31,6 +31,7 @@ import PollWidget from "./components/ads/PollWidget.jsx";
 import ExclusiveArticles from "./components/admin/ExclusiveArticles.jsx";
 import ArticleStats from "./components/admin/ArticleStats.jsx";
 import PrivateRoute from "./components/admin/PrivateRoutes.jsx";
+import AdminHome from "./components/admin/AdminHome.jsx";
 
 // Layout general
 function Layout({ children }) {
@@ -86,6 +87,7 @@ function App() {
               </PrivateRoute>
             }
           >
+            <Route index element={<AdminHome />} />
             <Route path="articles" element={<ArticlesAdmin />} />
             <Route path="exclusive-articles" element={<ExclusiveArticles />} />
             <Route path="articles/create" element={<ArticleCreator />} />
