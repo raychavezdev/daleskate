@@ -9,7 +9,7 @@ Los nombres de tablas y columnas de la primera columna aparecen en consultas PHP
 | Tabla | Columnas usadas por la API | Decisión del fixture / certeza |
 |---|---|---|
 | `users` | `id`, `username`, `role`, `password` | `id` autoincremental, `username` único y tipos `BIGINT`, `VARCHAR`, `VARCHAR`, `VARCHAR(255)` inferidos. El código confirma `password_verify()`/`password_hash()`, no el tipo SQL ni la unicidad productiva. |
-| `articles` | `id`, `title`, `slug`, `tags`, `banner`, `banner_mobile`, `description`, `contenido`, `created_at`, `is_banner`, `is_exclusive`, `exclusive_token` | Los flags son numéricos al convertirse a entero; `contenido` se guarda como JSON serializado. El fixture usa `LONGTEXT` para contenido/HTML, `TINYINT` para flags, `DATETIME` con `CURRENT_TIMESTAMP`, y un token exclusivo único. Tipos, defaults e índices productivos no están disponibles. |
+| `articles` | `id`, `title`, `slug`, `tags`, `banner`, `banner_mobile`, `description`, `contenido`, `created_at`, `is_banner`, `is_exclusive`, `exclusive_token`, `status` | Los flags son numéricos al convertirse a entero; `contenido` se guarda como JSON serializado. El fixture usa `LONGTEXT` para contenido/HTML, `TINYINT` para flags, `DATETIME` con `CURRENT_TIMESTAMP`, token exclusivo único y `ENUM('draft','published')` con default publicado. Tipos, defaults e índices productivos no están disponibles. |
 | `article_views` | `id`, `article_id` | El JOIN confirma la relación lógica con `articles.id`; el tipo de ID y la FK no están confirmados. El fixture usa FK con `ON DELETE CASCADE` solo para esta base de prueba. |
 | `ads` | `id`, `image`, `link` | La API guarda un nombre de archivo y un enlace. El fixture infiere ID autoincremental, `VARCHAR` para imagen y `TEXT` para enlace; no hay timestamp usado en consultas. |
 | `polls` | `id`, `question`, `options`, `votes`, `created_at`, `expires_at` | `options` y `votes` contienen JSON generado por PHP. El fixture usa `LONGTEXT` (portable entre MySQL/MariaDB), `DATETIME` para fechas y expiración nullable. El código no determina tipos SQL ni impone que la fecha se cumpla al votar. |
@@ -86,7 +86,7 @@ Remove-Variable secure
 php backend/tests/fixtures/integration_seed.php
 ```
 
-El seed crea dos usuarios ficticios (`integration-admin` con rol `admin` e `integration-editor` con rol `editor`), un artículo público, uno exclusivo con token compartible ficticio, un anuncio con imagen de prueba, una encuesta con dos opciones y dos visitas del artículo público. Las contraseñas se almacenan como bcrypt. No imprime contraseñas, hashes ni tokens.
+El seed crea dos usuarios ficticios (`integration-admin` con rol `admin` e `integration-editor` con rol `editor`), un artículo público, uno exclusivo con token compartible ficticio, un borrador incompleto, un anuncio con imagen de prueba, una encuesta con dos opciones y dos visitas del artículo público. Las contraseñas se almacenan como bcrypt. No imprime contraseñas, hashes ni tokens.
 
 ## Iniciar PHP y Vite sin tocar `.env`
 
@@ -125,12 +125,17 @@ Usa solo `integration-admin`, `integration-editor` y los registros creados por e
 | Artículos públicos | `GET /api/article_list.php`; obtener el ID del slug `integration-public-article`; `GET /api/article_get.php?id=<id>` sin token | Ambos accesibles sin autenticación; la lista no debe incluir el artículo exclusivo. |
 | Exclusivos | Obtener el ID de `integration-exclusive-article`; probar consulta por ID sin token, con admin y con `token=integration-share-token-only` | Por ID sin token: 401; con admin: 200; por enlace compartible: 200 sin volver a incluir `exclusive_token`. |
 | CRUD de artículos | Desde `/admin/articles`, crear un artículo ficticio sin archivos, editarlo y eliminar únicamente ese artículo de prueba | Las operaciones autenticadas funcionan; la lista pública lo refleja y deja de mostrarlo tras borrarlo. No borres los artículos seed para probar. |
+| Borradores | En `/admin/articles`, crear un borrador incompleto, volver a editarlo, completar y publicar; devolver otro artículo a borrador con confirmación | La lista administrativa requiere admin y filtra todos/publicados/borradores. La lista pública, banners, videos, visitas y enlaces compartibles no deben exponer los borradores. Para publicar, título y tags deben estar completos; si es banner, debe tener una portada. |
 | Anuncios | `GET /api/ads_get.php`; usar `/admin/ads` para subir la imagen fixture y eliminar solo el anuncio creado para esa prueba | Consulta pública funciona; creación/eliminación con admin funcionan; `ads_create.php` sin JWT devuelve 401 y no crea archivo ni fila. La eliminación del anuncio seed retira su imagen fixture; vuelve a seedear solo en una base nueva y vacía. |
 | Encuestas | `GET /api/poll_get_active.php`; votar por una opción seed; usar `/admin/polls/create` y `/admin/polls` para crear, listar y eliminar una encuesta ficticia | Lectura/voto públicos funcionan; operaciones administrativas requieren admin. Sin JWT, `poll_create.php`, `poll_delete.php` y `poll_list.php` devuelven 401. |
 | Estadísticas | `GET /api/article_stats.php` con admin y luego sin token/con editor | Admin recibe estadísticas con visitas; ausente recibe 401; editor recibe 403. El seed crea dos visitas ficticias. |
 | Sesión React | En `http://127.0.0.1:5173/login`, iniciar sesión como admin, navegar por artículos/anuncios/encuestas/estadísticas y cerrar sesión | El panel carga, logout borra la sesión y vuelve al login. Repetir como editor y comprobar mensajes 403 sin redirección de sesión. |
 
 `article_create.php`/`article_edit.php` usan `multipart/form-data`; `ads_create.php` requiere una imagen y un enlace. Las operaciones CRUD de esta tabla están descritas para la interfaz o una herramienta HTTP apuntada exclusivamente a la API local; no se ejecutan al cargar el esquema ni al correr el seed.
+
+## Migración de artículos a estados
+
+El archivo `backend/migrations/20261031_add_article_status.sql` es una migración manual para el esquema de aplicación; no la ejecuta el seed ni forma parte de `integration_schema.sql`. El orden previsto es: respaldar y verificar el esquema real del entorno destino; aplicar la migración una sola vez; desplegar primero los endpoints PHP que filtran y guardan `status`; después publicar el build React que usa el listado administrativo y envía el estado. Para Hostinger, comparar antes el tipo/default de columnas existentes y confirmar respaldo/ventana con el operador. No se ha comprobado ni ejecutado esta migración en producción.
 
 ## Limpieza y límites
 

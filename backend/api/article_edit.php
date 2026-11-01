@@ -6,23 +6,25 @@ require_once __DIR__ . "/../vendor/autoload.php";
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 require_once __DIR__ . "/../config/authentication.php";
+require_once __DIR__ . "/../config/article_workflow.php";
 
 
 $claims = requireAdmin($conn, requireSecretKey());
 $id = $_POST['id'] ?? null;
-$title = $_POST['title'] ?? null;
-$tags = $_POST['tags'] ?? null;
+$title = trim((string)($_POST['title'] ?? ''));
+$tags = trim((string)($_POST['tags'] ?? ''));
+$requestedStatus = $_POST['status'] ?? null;
 $description = $_POST['description'] ?? '';
-$contenido = isset($_POST['contenido']) ? json_decode($_POST['contenido'], true) : [];
+$contenido = isset($_POST['contenido']) ? json_decode($_POST['contenido'], true) : null;
 
-if (!$id || !$title || !$tags) {
+if (!$id) {
     http_response_code(400);
-    echo json_encode(["error" => "Faltan datos obligatorios"]);
+    echo json_encode(["error" => "ID de artículo requerido"]);
     exit;
 }
 
 
-$stmt = $conn->prepare("SELECT banner, banner_mobile, contenido FROM articles WHERE id = :id");
+$stmt = $conn->prepare("SELECT title, tags, banner, banner_mobile, contenido, is_banner, status FROM articles WHERE id = :id");
 $stmt->bindParam(":id", $id, PDO::PARAM_INT);
 $stmt->execute();
 $article = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -36,6 +38,37 @@ if (!$article) {
 $currentBanner = $article['banner'];
 $currentBannerMobile = $article['banner_mobile'];
 $currentContenido = json_decode($article['contenido'], true);
+$title = array_key_exists('title', $_POST) ? $title : $article['title'];
+$tags = array_key_exists('tags', $_POST) ? $tags : $article['tags'];
+$description = array_key_exists('description', $_POST) ? $description : '';
+$contenido = $contenido ?? $currentContenido;
+if (!is_array($contenido)) {
+    http_response_code(400);
+    echo json_encode(["error" => "Contenido de artículo inválido"]);
+    exit;
+}
+$status = normalizeArticleStatus($requestedStatus, $article['status']);
+$is_banner = isset($_POST['is_banner']) ? (int)$_POST['is_banner'] : (int)$article['is_banner'];
+if ($status === null) {
+    http_response_code(400);
+    echo json_encode(["error" => "Estado de artículo inválido"]);
+    exit;
+}
+if ($status === 'published') {
+    $errors = articlePublicationErrors([
+        'title' => $title,
+        'tags' => $tags,
+        'is_banner' => $is_banner,
+        'banner' => $currentBanner,
+        'banner_mobile' => $currentBannerMobile,
+    ], !empty($_FILES['banner']['name']), !empty($_FILES['banner_mobile']['name']));
+    if ($errors !== []) {
+        http_response_code(422);
+        echo json_encode(["error" => "El artículo no está completo para publicarse", "details" => $errors], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+$slug = createUniqueArticleSlug($conn, $title, (int)$id);
 
 
 
@@ -117,20 +150,20 @@ foreach ($contenido as $i => &$bloque) {
 unset($bloque);
 
 
-$is_banner = isset($_POST['is_banner']) ? (int)$_POST['is_banner'] : 0;
-if ($is_banner === 1) {
-    $conn->exec("UPDATE articles SET is_banner = 0 WHERE is_banner = 1");
+if ($is_banner === 1 && $status === 'published') {
+    $conn->exec("UPDATE articles SET is_banner = 0 WHERE is_banner = 1 AND status = 'published' AND id <> " . (int)$id);
 }
 
 
 $stmt = $conn->prepare("
     UPDATE articles 
-    SET title = :title, tags = :tags, banner = :banner, banner_mobile = :banner_mobile, description = :description, contenido = :contenido, is_banner = :is_banner
+    SET title = :title, slug = :slug, tags = :tags, banner = :banner, banner_mobile = :banner_mobile, description = :description, contenido = :contenido, is_banner = :is_banner, status = :status
     WHERE id = :id
 ");
 
 $stmt->bindParam(":id", $id, PDO::PARAM_INT);
 $stmt->bindParam(":title", $title);
+$stmt->bindParam(":slug", $slug);
 $stmt->bindParam(":tags", $tags);
 $stmt->bindParam(":banner", $bannerUrl);
 $stmt->bindParam(":banner_mobile", $bannerMobileUrl);
@@ -139,6 +172,7 @@ $stmt->bindParam(":description", $description);
 $contenidoJson = json_encode($contenido);
 $stmt->bindParam(":contenido", $contenidoJson);
 $stmt->bindParam(":is_banner", $is_banner, PDO::PARAM_INT);
+$stmt->bindParam(":status", $status);
 
 try {
     $stmt->execute();

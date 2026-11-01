@@ -73,9 +73,9 @@ try {
     );
     $fixtureUsers->execute(['integration-admin', 'integration-editor']);
     $fixtureArticles = $pdo->prepare(
-        'SELECT COUNT(*) FROM articles WHERE slug IN (?, ?)'
+        'SELECT COUNT(*) FROM articles WHERE slug IN (?, ?, ?)'
     );
-    $fixtureArticles->execute(['integration-public-article', 'integration-exclusive-article']);
+    $fixtureArticles->execute(['integration-public-article', 'integration-exclusive-article', 'integration-draft-article']);
     $fixtureAd = $pdo->prepare('SELECT COUNT(*) FROM ads WHERE image = ?');
     $fixtureAd->execute(['integration-ad.svg']);
     $fixturePoll = $pdo->prepare('SELECT COUNT(*) FROM polls WHERE question = ?');
@@ -131,8 +131,8 @@ try {
     $insertArticle = $pdo->prepare(
         'INSERT INTO articles
             (title, slug, tags, banner, banner_mobile, description, contenido,
-             is_banner, is_exclusive, exclusive_token)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             is_banner, is_exclusive, exclusive_token, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $insertArticle->execute([
         'Artículo público de integración',
@@ -145,7 +145,9 @@ try {
         1,
         0,
         null,
+        'published',
     ]);
+    $publicArticleId = (int)$pdo->lastInsertId();
     $insertArticle->execute([
         'Artículo exclusivo de integración',
         'integration-exclusive-article',
@@ -157,9 +159,21 @@ try {
         0,
         1,
         'integration-share-token-only',
+        'published',
     ]);
-
-    $publicArticleId = (int)$pdo->lastInsertId();
+    $insertArticle->execute([
+        '',
+        'integration-draft-article',
+        '',
+        null,
+        null,
+        '',
+        '[]',
+        0,
+        0,
+        null,
+        'draft',
+    ]);
     $insertView = $pdo->prepare('INSERT INTO article_views (article_id) VALUES (?)');
     $insertView->execute([$publicArticleId]);
     $insertView->execute([$publicArticleId]);

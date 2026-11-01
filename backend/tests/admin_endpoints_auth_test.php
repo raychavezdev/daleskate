@@ -98,9 +98,11 @@ $adminEndpoints = [
     "poll_list.php" => "SELECT id, question, options, votes",
     "article_stats.php" => "SELECT",
     "article_create.php" => "move_uploaded_file",
-    "article_edit.php" => "SELECT banner, banner_mobile, contenido",
+    "article_edit.php" => "SELECT title, tags, banner, banner_mobile, contenido, is_banner, status",
     "article_delete.php" => "DELETE FROM articles",
     "article_exclusive_list.php" => 'getExclusiveArticles($conn, $claims)',
+    "article_admin_list.php" => 'FROM articles',
+    "article_status.php" => "UPDATE articles SET status = 'draft'",
 ];
 
 foreach ($adminEndpoints as $file => $operationMarker) {
@@ -130,8 +132,8 @@ $publicEndpoints = [
     "ads_get.php" => "SELECT * FROM ads",
     "poll_get_active.php" => "SELECT * FROM polls",
     "poll_vote.php" => "UPDATE polls SET votes",
-    "article_list.php" => "WHERE is_exclusive = 0",
-    "article_videos.php" => "WHERE is_exclusive = 0",
+    "article_list.php" => "WHERE is_exclusive = 0 AND status = 'published'",
+    "article_videos.php" => "WHERE is_exclusive = 0 AND status = 'published'",
 ];
 
 foreach ($publicEndpoints as $file => $publicMarker) {

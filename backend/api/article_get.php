@@ -30,7 +30,7 @@ try {
 
     if ($article === null) {
         $claims = requireAdmin($conn, requireSecretKey());
-        $article = getArticleById($conn, $id, true);
+        $article = getArticleById($conn, $id, true, true);
     }
 
     if (!$article) {

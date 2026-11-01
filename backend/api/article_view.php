@@ -16,11 +16,17 @@ try {
 
     $stmt = $conn->prepare("
         INSERT INTO article_views (article_id)
-        VALUES (:article_id)
+        SELECT id FROM articles WHERE id = :article_id AND status = 'published'
     ");
 
     $stmt->bindParam(":article_id", $articleId);
     $stmt->execute();
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(["error" => "Artículo no encontrado"]);
+        exit;
+    }
 
     echo json_encode([
         "success" => true

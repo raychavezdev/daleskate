@@ -5,32 +5,37 @@ require_once __DIR__ . "/../vendor/autoload.php";
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 require_once __DIR__ . "/../config/authentication.php";
-
-function createSlug($text)
-{
-    $text = strtolower($text);
-    $text = iconv('UTF-8', 'ASCII//TRANSLIT', $text);
-    $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
-    $text = preg_replace('/[\s-]+/', '-', $text);
-    $text = trim($text, '-');
-    return $text;
-}
-
-
+require_once __DIR__ . "/../config/article_workflow.php";
 
 $claims = requireAdmin($conn, requireSecretKey());
-$title = $_POST['title'] ?? null;
-$slug = createSlug($title);
-$tags = $_POST['tags'] ?? null;
+$title = trim((string)($_POST['title'] ?? ''));
+$tags = trim((string)($_POST['tags'] ?? ''));
+$status = normalizeArticleStatus($_POST['status'] ?? null);
 $description = $_POST['description'] ?? '';
 $contenido = isset($_POST['contenido']) ? json_decode($_POST['contenido'], true) : [];
 $is_exclusive = isset($_POST['is_exclusive']) ? (int)$_POST['is_exclusive'] : 0;
+$is_banner = isset($_POST['is_banner']) ? (int)$_POST['is_banner'] : 0;
 
-if (!$title || !$tags) {
+if ($status === null || !is_array($contenido)) {
     http_response_code(400);
-    echo json_encode(["error" => "Faltan datos obligatorios"]);
+    echo json_encode(["error" => "Datos de artículo inválidos"]);
     exit;
 }
+
+if ($status === 'published') {
+    $errors = articlePublicationErrors([
+        'title' => $title,
+        'tags' => $tags,
+        'is_banner' => $is_banner,
+    ], !empty($_FILES['banner']['name']), !empty($_FILES['banner_mobile']['name']));
+    if ($errors !== []) {
+        http_response_code(422);
+        echo json_encode(["error" => "El artículo no está completo para publicarse", "details" => $errors], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+$slug = createUniqueArticleSlug($conn, $title);
 
 $exclusive_token = null;
 if ($is_exclusive === 1) {
@@ -118,17 +123,16 @@ foreach ($contenido as $i => &$bloque) {
 }
 unset($bloque);
 
-$is_banner = isset($_POST['is_banner']) ? (int)$_POST['is_banner'] : 0;
-if ($is_banner === 1) {
-    $conn->exec("UPDATE articles SET is_banner = 0 WHERE is_banner = 1");
+if ($is_banner === 1 && $status === 'published') {
+    $conn->exec("UPDATE articles SET is_banner = 0 WHERE is_banner = 1 AND status = 'published'");
 }
 
 
 $stmt = $conn->prepare("
     INSERT INTO articles 
-    (title, slug, tags, banner, banner_mobile, description, contenido, is_banner, is_exclusive, exclusive_token)
+    (title, slug, tags, banner, banner_mobile, description, contenido, is_banner, is_exclusive, exclusive_token, status)
     VALUES 
-    (:title, :slug, :tags, :banner, :banner_mobile, :description, :contenido, :is_banner, :is_exclusive, :exclusive_token)
+    (:title, :slug, :tags, :banner, :banner_mobile, :description, :contenido, :is_banner, :is_exclusive, :exclusive_token, :status)
 ");
 
 $contenidoJson = json_encode($contenido, JSON_UNESCAPED_UNICODE);
@@ -143,12 +147,16 @@ $stmt->bindParam(":contenido", $contenidoJson);
 $stmt->bindParam(":is_banner", $is_banner, PDO::PARAM_INT);
 $stmt->bindParam(":is_exclusive", $is_exclusive, PDO::PARAM_INT);
 $stmt->bindParam(":exclusive_token", $exclusive_token);
+$stmt->bindParam(":status", $status);
 
 try {
     $stmt->execute();
+    $articleId = (int)$conn->lastInsertId();
 
     echo json_encode([
         "message" => "Artículo creado correctamente",
+        "article_id" => $articleId,
+        "status" => $status,
         "exclusive_token" => $exclusive_token
     ]);
 } catch (PDOException $e) {

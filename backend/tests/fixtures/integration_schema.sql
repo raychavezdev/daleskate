@@ -26,6 +26,7 @@ CREATE TABLE articles (
     is_banner TINYINT UNSIGNED NOT NULL DEFAULT 0,
     is_exclusive TINYINT UNSIGNED NOT NULL DEFAULT 0,
     exclusive_token VARCHAR(128) NULL,
+    status ENUM('draft', 'published') NOT NULL DEFAULT 'published',
     PRIMARY KEY (id),
     UNIQUE KEY uq_articles_exclusive_token (exclusive_token),
     KEY idx_articles_created_at (created_at),

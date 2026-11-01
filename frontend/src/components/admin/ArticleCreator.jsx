@@ -23,6 +23,7 @@ const ArticleCreator = () => {
 
   const [isBanner, setIsBanner] = useState(false);
   const [isExclusive, setIsExclusive] = useState(false);
+  const [status, setStatus] = useState("draft");
   const [loading, setLoading] = useState(false);
 
   const modules = {
@@ -83,6 +84,7 @@ const ArticleCreator = () => {
         setDescription(data.description || "");
         setIsBanner(Number(data.is_banner) === 1);
         setIsExclusive(Number(data.is_exclusive) === 1);
+        setStatus(data.status || "published");
 
         if (data.banner) {
           setBannerPreview(buildFileUrl(data.banner));
@@ -284,16 +286,16 @@ const ArticleCreator = () => {
     );
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (targetStatus) => {
     const cleanTitle = title.trim();
     const cleanTags = tags.trim();
 
-    if (!cleanTitle) {
+    if (targetStatus === "published" && !cleanTitle) {
       alert("El título es obligatorio.");
       return;
     }
 
-    if (!cleanTags) {
+    if (targetStatus === "published" && !cleanTags) {
       alert("Los tags son obligatorios.");
       return;
     }
@@ -301,7 +303,7 @@ const ArticleCreator = () => {
     const hasDesktopBanner = Boolean(bannerFile || bannerPreview);
     const hasMobileBanner = Boolean(bannerMobileFile || bannerMobilePreview);
 
-    if (isBanner && !hasDesktopBanner && !hasMobileBanner) {
+    if (targetStatus === "published" && isBanner && !hasDesktopBanner && !hasMobileBanner) {
       alert(
         "Para mostrar el artículo como banner debes agregar al menos una portada.",
       );
@@ -319,6 +321,7 @@ const ArticleCreator = () => {
 
       formData.append("title", cleanTitle);
       formData.append("tags", cleanTags);
+      formData.append("status", targetStatus);
       formData.append("is_banner", isBanner ? "1" : "0");
       formData.append("description", description);
       formData.append("is_exclusive", isExclusive ? "1" : "0");
@@ -409,19 +412,17 @@ const ArticleCreator = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || data.message || "No se pudo guardar el artículo.",
-        );
+        const details = Array.isArray(data.details) ? ` ${data.details.join(" ")}` : "";
+        throw new Error(`${data.error || data.message || "No se pudo guardar el artículo."}${details}`);
       }
 
-      alert(
-        data.message ||
-          (id
-            ? "Artículo actualizado correctamente."
-            : "Artículo creado correctamente."),
-      );
-
-      navigate("/admin/articles");
+      setStatus(targetStatus);
+      alert(data.message || (targetStatus === "draft" ? "Borrador guardado." : "Artículo publicado."));
+      if (targetStatus === "draft") {
+        if (!id && data.article_id) navigate(`/admin/articles/edit/${data.article_id}`);
+      } else {
+        navigate("/admin/articles");
+      }
     } catch (error) {
       console.error("Error guardando artículo:", error);
       alert(error.message || "Ocurrió un error al guardar el artículo.");
@@ -436,6 +437,11 @@ const ArticleCreator = () => {
         <h1 className="text-2xl font-bold mb-4">
           {id ? "Editar Artículo" : "Creador de Artículos"}
         </h1>
+        <p className="mb-4 text-sm font-medium" aria-live="polite">
+          Estado actual: <span className={status === "draft" ? "text-amber-700" : "text-green-700"}>
+            {status === "draft" ? "Borrador" : "Publicado"}
+          </span>
+        </p>
 
         <input
           type="text"
@@ -702,25 +708,16 @@ const ArticleCreator = () => {
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={loading}
-          className={`flex items-center justify-center gap-2 px-4 py-2 mt-4 rounded text-white ${
-            loading ? "bg-gray-500 cursor-not-allowed" : "bg-black"
-          }`}
-        >
-          {loading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Guardando...
-            </>
-          ) : id ? (
-            "Actualizar Artículo"
-          ) : (
-            "Guardar Artículo"
-          )}
-        </button>
+        <div className="mt-4 flex gap-3 flex-wrap">
+          <button type="button" onClick={() => handleSubmit("draft")} disabled={loading}
+            className={`px-4 py-2 rounded text-white ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-amber-700"}`}>
+            {loading ? "Guardando..." : "Guardar borrador"}
+          </button>
+          <button type="button" onClick={() => handleSubmit("published")} disabled={loading}
+            className={`px-4 py-2 rounded text-white ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-black"}`}>
+            {loading ? "Guardando..." : "Publicar artículo"}
+          </button>
+        </div>
       </div>
 
       <div className="border rounded overflow-y-auto pt-5 flex-1">

@@ -20,7 +20,7 @@ try {
             created_at,
             is_banner
         FROM articles
-        WHERE is_exclusive = 0
+        WHERE is_exclusive = 0 AND status = 'published'
     ";
 
     if ($excludeBanner) {

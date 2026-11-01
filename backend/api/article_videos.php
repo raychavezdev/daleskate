@@ -6,7 +6,7 @@ try {
     
     $query = "SELECT id, title, banner, tags, description, contenido, created_at 
               FROM articles
-              WHERE is_exclusive = 0 
+              WHERE is_exclusive = 0 AND status = 'published'
               ORDER BY created_at DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
