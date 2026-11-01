@@ -6,6 +6,22 @@ import ReactQuill from "react-quill-new";
 import DOMPurify from "dompurify";
 import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
+const CoverFilePicker = ({ id, label, file, preview, onChange }) => (
+  <div className="mt-3">
+    <label htmlFor={id} className="group flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 p-4 transition hover:border-red-500 hover:bg-red-50/40 focus-within:border-red-700 focus-within:ring-4 focus-within:ring-red-700/10 sm:p-5">
+      <input id={id} type="file" accept="image/*" className="sr-only" onChange={onChange} />
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-stone-950 text-2xl text-white transition group-hover:bg-red-800" aria-hidden="true">↑</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-stone-900">{file ? "Archivo seleccionado" : "Selecciona una imagen"}</span>
+        <span className="mt-1 block truncate text-xs text-stone-500" aria-live="polite">
+          {file?.name || (preview ? `${label} actual guardada · selecciona para reemplazar` : "JPG, PNG o GIF · haz clic para explorar tus archivos")}
+        </span>
+      </span>
+      <span className="shrink-0 rounded-lg bg-red-800 px-3 py-2 text-xs font-semibold text-white transition group-hover:bg-red-900">Elegir archivo</span>
+    </label>
+  </div>
+);
+
 const ArticleCreator = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -431,21 +447,27 @@ const ArticleCreator = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 flex gap-6">
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">
+    <div className="min-h-screen bg-[#f3f0eb] p-4 sm:p-6 xl:flex xl:items-start xl:gap-6">
+      <div className="min-w-0 flex-1 space-y-5">
+        <header className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+        <p className="mb-2 font-geistmono text-[10px] uppercase tracking-[0.2em] text-red-700">DaleSkate / Edición</p>
+        <h1 className="font-spectral text-3xl text-stone-950 sm:text-4xl">
           {id ? "Editar Artículo" : "Creador de Artículos"}
         </h1>
-        <p className="mb-4 text-sm font-medium" aria-live="polite">
-          Estado actual: <span className={status === "draft" ? "text-amber-700" : "text-green-700"}>
+        <p className="mt-2 flex items-center gap-2 text-sm text-stone-500" aria-live="polite">
+          Estado actual:
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status === "draft" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
             {status === "draft" ? "Borrador" : "Publicado"}
           </span>
         </p>
+        </header>
 
+        <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
         <input
           type="text"
           placeholder="Título"
-          className="border p-2 w-full mb-2"
+          aria-label="Título del artículo"
+          className="mb-3 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition placeholder:text-stone-400 focus:border-red-700 focus:bg-white focus:ring-4 focus:ring-red-700/10"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
@@ -453,104 +475,101 @@ const ArticleCreator = () => {
         <input
           type="text"
           placeholder="Tags (separados por coma)"
-          className="border p-2 w-full mb-2"
+          aria-label="Tags del artículo"
+          className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition placeholder:text-stone-400 focus:border-red-700 focus:bg-white focus:ring-4 focus:ring-red-700/10"
           value={tags}
           onChange={(event) => setTags(event.target.value)}
         />
 
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700 transition hover:border-stone-400">
           <input
             type="checkbox"
             id="isBanner"
+            className="h-4 w-4 accent-red-800"
             checked={isBanner}
             onChange={(event) => setIsBanner(event.target.checked)}
           />
+          <span>Mostrar como banner en la página principal</span>
+        </label>
 
-          <label htmlFor="isBanner" className="text-sm">
-            Mostrar como banner en la página principal
-          </label>
-        </div>
-
-        <div className="mb-4 flex items-center gap-2">
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700 transition hover:border-stone-400">
           <input
             type="checkbox"
             id="isExclusive"
+            className="h-4 w-4 accent-red-800"
             checked={isExclusive}
             onChange={(event) => setIsExclusive(event.target.checked)}
           />
-
-          <label htmlFor="isExclusive">Artículo exclusivo</label>
+          <span>Artículo exclusivo</span>
+        </label>
         </div>
+        </section>
 
-        <div className="mb-4 rounded border border-gray-200 bg-white p-4">
-          <p className="mb-3 text-sm text-gray-600">
+        <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+          <p className="mb-5 text-sm leading-relaxed text-stone-600">
             Las portadas son opcionales. Para mostrar el artículo como banner en
             la página principal debes agregar al menos una.
           </p>
 
-          <label className="block font-semibold mb-1">
+          <label className="block font-semibold text-stone-900 mb-1">
             Portada{" "}
             <span className="font-normal text-gray-500">(opcional)</span>
           </label>
 
-          <input
-            type="file"
-            accept="image/*"
-            className="mb-4"
-            onChange={handleBannerChange}
-          />
+          <CoverFilePicker id="cover-desktop" label="Portada" file={bannerFile} preview={bannerPreview} onChange={handleBannerChange} />
 
           {bannerPreview && (
             <img
               src={bannerPreview}
               alt="Vista previa de la portada"
-              className="w-full mb-4 rounded"
+              className="mt-3 mb-6 aspect-[16/7] w-full rounded-xl border border-stone-200 object-cover"
             />
           )}
 
-          <label className="block font-semibold mb-1">
+          <label className="block font-semibold text-stone-900 mb-1">
             Portada móvil{" "}
             <span className="font-normal text-gray-500">(opcional)</span>
           </label>
 
-          <p className="mb-2 text-sm text-gray-500">
+          <p className="mb-2 text-sm leading-relaxed text-stone-500">
             Esta versión se utilizará en pantallas pequeñas. Si no la agregas,
             se utilizará la portada principal.
           </p>
 
-          <input
-            type="file"
-            accept="image/*"
-            className="mb-4"
-            onChange={handleBannerMobileChange}
-          />
+          <CoverFilePicker id="cover-mobile" label="Portada móvil" file={bannerMobileFile} preview={bannerMobilePreview} onChange={handleBannerMobileChange} />
 
           {bannerMobilePreview && (
             <img
               src={bannerMobilePreview}
               alt="Vista previa de la portada móvil"
-              className="w-full mb-4 rounded"
+              className="mt-3 mb-2 aspect-[4/5] max-h-96 rounded-xl border border-stone-200 object-cover"
             />
           )}
-        </div>
+        </section>
 
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Descripción</label>
+        <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+          <label className="mb-3 block font-semibold text-stone-900">Descripción</label>
 
           <ReactQuill
             theme="snow"
             value={description}
             onChange={setDescription}
-            className="bg-white rounded"
+            className="rounded-xl bg-stone-50"
             modules={modules}
           />
-        </div>
+        </section>
 
-        <div className="mb-4 flex gap-2 flex-wrap">
+        <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-4">
+          <p className="font-geistmono text-[10px] uppercase tracking-[0.18em] text-red-700">Contenido</p>
+          <h2 className="mt-1 font-spectral text-xl text-stone-900">Construye tu historia</h2>
+        </div>
+        <div className="mb-5 flex gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => addBlock("texto")}
-            className="bg-blue-500 text-white px-3 py-1 rounded"
+            className="rounded-lg border border-stone-300 bg-stone-50 px-3.5 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-500 hover:bg-white"
           >
             + Texto
           </button>
@@ -558,7 +577,7 @@ const ArticleCreator = () => {
           <button
             type="button"
             onClick={() => addBlock("imagen")}
-            className="bg-purple-500 text-white px-3 py-1 rounded"
+            className="rounded-lg border border-stone-300 bg-stone-50 px-3.5 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-500 hover:bg-white"
           >
             + Imagen
           </button>
@@ -566,7 +585,7 @@ const ArticleCreator = () => {
           <button
             type="button"
             onClick={() => addBlock("video")}
-            className="bg-red-500 text-white px-3 py-1 rounded"
+            className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-sm font-semibold text-red-800 transition hover:border-red-400 hover:bg-red-100"
           >
             + Video (YouTube)
           </button>
@@ -574,14 +593,14 @@ const ArticleCreator = () => {
           <button
             type="button"
             onClick={() => addBlock("video_externo")}
-            className="bg-orange-500 text-white px-3 py-1 rounded"
+            className="rounded-lg border border-orange-200 bg-orange-50 px-3.5 py-2 text-sm font-semibold text-orange-800 transition hover:border-orange-400 hover:bg-orange-100"
           >
             + Video Externo
           </button>
         </div>
 
         {contenido.map((block, index) => (
-          <div key={index} className="mb-3 border p-2 rounded relative">
+          <div key={index} className="relative mb-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 pt-10 sm:p-5 sm:pt-10">
             <label className="block font-semibold mb-1">
               {(block.tipo || "bloque").toUpperCase()}
             </label>
@@ -707,19 +726,20 @@ const ArticleCreator = () => {
           </div>
         ))}
 
-        <div className="mt-4 flex gap-3 flex-wrap">
+        <div className="mt-6 flex gap-3 flex-wrap border-t border-stone-200 pt-5">
           <button type="button" onClick={() => handleSubmit("draft")} disabled={loading}
-            className={`px-4 py-2 rounded text-white ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-amber-700"}`}>
+            className={`rounded-xl border px-5 py-3 text-sm font-semibold transition ${loading ? "cursor-not-allowed border-stone-300 bg-stone-300 text-stone-500" : "border-amber-700 bg-white text-amber-900 hover:bg-amber-50"}`}>
             {loading ? "Guardando..." : "Guardar borrador"}
           </button>
           <button type="button" onClick={() => handleSubmit("published")} disabled={loading}
-            className={`px-4 py-2 rounded text-white ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-black"}`}>
+            className={`rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg transition ${loading ? "cursor-not-allowed bg-stone-400" : "bg-red-800 shadow-red-950/15 hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-800"}`}>
             {loading ? "Guardando..." : "Publicar artículo"}
           </button>
         </div>
+        </section>
       </div>
 
-      <div className="border rounded overflow-y-auto pt-5 flex-1">
+      <aside className="mt-6 min-w-0 flex-1 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6 xl:mt-0 xl:max-h-[calc(100vh-3rem)]">
         <div>
           <h2 className="text-4xl font-bold font-serif">
             {(title || "").toUpperCase()}
@@ -735,7 +755,7 @@ const ArticleCreator = () => {
             <img
               src={bannerPreview}
               alt="Vista previa de la portada"
-              className="w-full mb-4 rounded"
+              className="w-full max-w-full mb-4 rounded"
             />
           )}
 
@@ -746,7 +766,7 @@ const ArticleCreator = () => {
               <img
                 src={bannerMobilePreview}
                 alt="Vista previa de la portada móvil"
-                className="w-full mb-4 rounded border border-dashed border-gray-400"
+                className="w-full max-w-full mb-4 rounded border border-dashed border-gray-400"
               />
             </div>
           )}
@@ -786,7 +806,7 @@ const ArticleCreator = () => {
                   <img
                     src={block.preview}
                     alt={block.caption || `Imagen del artículo ${title}`}
-                    className={block.fullWidth ? "w-full" : "w-full rounded"}
+                    className={block.fullWidth ? "w-full max-w-full" : "w-full max-w-full rounded"}
                   />
 
                   {block.caption?.trim() && (
@@ -816,7 +836,7 @@ const ArticleCreator = () => {
                     <img
                       src={block.preview}
                       alt="Miniatura"
-                      className="w-full mb-2"
+                      className="w-full max-w-full mb-2"
                     />
                   )}
 
@@ -835,7 +855,7 @@ const ArticleCreator = () => {
             </div>
           ))}
         </div>
-      </div>
+      </aside>
     </div>
   );
 };
