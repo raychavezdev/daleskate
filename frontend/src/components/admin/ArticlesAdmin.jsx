@@ -3,6 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AdminSection, { AdminActionLink, AdminEmptyState } from "./AdminSection.jsx";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
 const ArticlesAdmin = () => {
   const [articles, setArticles] = useState([]);
@@ -14,8 +15,7 @@ const ArticlesAdmin = () => {
     const res = await fetch(`${API_URL}/api/article_admin_list.php`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
-    if (res.status === 401) {
-      localStorage.removeItem("token");
+    if (clearSessionOnUnauthorizedStatus(res.status)) {
       navigate("/login");
       return;
     }
@@ -44,8 +44,7 @@ const ArticlesAdmin = () => {
       method: "DELETE",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
-    if (res.status === 401) {
-      localStorage.removeItem("token");
+    if (clearSessionOnUnauthorizedStatus(res.status)) {
       navigate("/login");
       return;
     }
@@ -68,8 +67,7 @@ const ArticlesAdmin = () => {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: formData,
     });
-    if (res.status === 401) {
-      localStorage.removeItem("token");
+    if (clearSessionOnUnauthorizedStatus(res.status)) {
       navigate("/login");
       return;
     }

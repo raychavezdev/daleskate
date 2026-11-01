@@ -145,12 +145,13 @@ foreach ($publicEndpoints as $file => $publicMarker) {
 $frontendDir = __DIR__ . "/../../frontend/src/components/admin/";
 $roleAwareComponents = [
     "AdsAdmin.jsx", "PollCreate.jsx", "PollList.jsx", "ArticleStats.jsx",
-    "ArticlesAdmin.jsx", "ExclusiveArticles.jsx", "ArticleCreator.jsx",
+    "ArticlesAdmin.jsx", "ExclusiveArticles.jsx", "ArticleCreator.jsx", "AdminHome.jsx",
 ];
 foreach ($roleAwareComponents as $file) {
     $source = file_get_contents($frontendDir . $file);
     assertAdminAuthTest(strpos($source, "403") !== false, "$file debe diferenciar falta de permisos (403)");
-    assertAdminAuthTest(strpos($source, 'status === 401') !== false, "$file debe conservar manejo de sesión inválida (401)");
+    assertAdminAuthTest(strpos($source, 'clearSessionOnUnauthorizedStatus(') !== false, "$file debe limpiar sesión ante HTTP 401");
+    assertAdminAuthTest(strpos($source, 'status === 403') !== false, "$file debe manejar permisos insuficientes sin limpiar sesión");
 }
 
 $adsAdminSource = file_get_contents($frontendDir . "AdsAdmin.jsx");
@@ -160,12 +161,15 @@ $publicAdsFetch = substr($adsAdminSource, $publicAdsStart, $publicAdsEnd - $publ
 assertAdminAuthTest(strpos($publicAdsFetch, "Authorization") === false, "la lectura pública de anuncios no debe enviar JWT innecesariamente");
 
 $privateRoutesSource = file_get_contents($frontendDir . "PrivateRoutes.jsx");
-assertAdminAuthTest(strpos($privateRoutesSource, "decodedPayload.exp") !== false, "la ruta privada debe comprobar exp antes de mostrar el panel");
-assertAdminAuthTest(strpos($privateRoutesSource, 'localStorage.removeItem("token")') !== false, "la ruta privada debe borrar una sesión expirada o inválida");
+assertAdminAuthTest(strpos($privateRoutesSource, "isSessionTokenCurrent(") !== false, "la ruta privada debe comprobar expiración antes de mostrar el panel");
+$sessionTokenSource = file_get_contents($frontendDir . "sessionToken.js");
+assertAdminAuthTest(strpos($sessionTokenSource, "payload.exp > nowSeconds") !== false, "los JWT sin sesión local deben comprobar exp contra la hora actual");
+assertAdminAuthTest(strpos($sessionTokenSource, "payload.exp - payload.iat") !== false, "la sesión local no debe superar la duración del JWT");
+assertAdminAuthTest(strpos($privateRoutesSource, 'clearStoredSession()') !== false, "la ruta privada debe borrar una sesión expirada o inválida");
 $appSource = file_get_contents(__DIR__ . "/../../frontend/src/App.jsx");
 assertAdminAuthTest(strpos($appSource, 'from "./components/admin/PrivateRoutes.jsx"') !== false, "App debe reutilizar la guarda que comprueba expiración");
 $changePasswordFrontend = file_get_contents($frontendDir . "ChangePasword.jsx");
-assertAdminAuthTest(strpos($changePasswordFrontend, "res.status === 401") !== false, "cambiar contraseña debe cerrar sesión ante JWT expirado");
+assertAdminAuthTest(strpos($changePasswordFrontend, 'clearSessionOnUnauthorizedStatus(res.status)') !== false, "cambiar contraseña debe cerrar sesión ante JWT expirado");
 assertAdminAuthTest(strpos($changePasswordFrontend, "res.status === 403") !== false, "cambiar contraseña no debe confundir 403 con sesión expirada");
 $bootstrapSource = file_get_contents(__DIR__ . "/../config/bootstrap.php");
 assertAdminAuthTest(strpos($bootstrapSource, "http_response_code(500)") !== false, "la falta de SECRET_KEY debe responder con error interno controlado");

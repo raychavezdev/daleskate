@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSection from "./AdminSection.jsx";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -46,8 +47,7 @@ const PollCreate = () => {
         }),
       });
 
-      if (res.status === 401) {
-        localStorage.removeItem("token");
+      if (clearSessionOnUnauthorizedStatus(res.status)) {
         navigate("/login");
         return;
       }

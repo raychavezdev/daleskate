@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSection, { AdminEmptyState } from "./AdminSection.jsx";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const FRONTEND_URL = window.location.origin;
@@ -16,8 +17,7 @@ const ExclusiveArticles = () => {
       const res = await fetch(`${API_URL}/api/article_exclusive_list.php`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
+      if (clearSessionOnUnauthorizedStatus(res.status)) {
         navigate("/login");
         return;
       }
@@ -41,8 +41,7 @@ const ExclusiveArticles = () => {
       method: "DELETE",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
-    if (res.status === 401) {
-      localStorage.removeItem("token");
+    if (clearSessionOnUnauthorizedStatus(res.status)) {
       navigate("/login");
       return;
     }

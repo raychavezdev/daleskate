@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactQuill from "react-quill-new";
 import DOMPurify from "dompurify";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
 const ArticleCreator = () => {
   const { id } = useParams();
@@ -63,8 +64,7 @@ const ArticleCreator = () => {
           credentials: "include",
         });
 
-        if (res.status === 401) {
-          localStorage.removeItem("token");
+        if (clearSessionOnUnauthorizedStatus(res.status)) {
           navigate("/login");
           return;
         }
@@ -399,8 +399,7 @@ const ArticleCreator = () => {
         body: formData,
       });
 
-      if (response.status === 401) {
-        localStorage.removeItem("token");
+      if (clearSessionOnUnauthorizedStatus(response.status)) {
         navigate("/login");
         return;
       }

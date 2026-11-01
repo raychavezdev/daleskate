@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { clearStoredSession } from "./sessionToken.js";
 
 const sections = [
   { to: "/admin", label: "Inicio", end: true },
@@ -14,7 +15,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearStoredSession();
     navigate("/login");
   };
 

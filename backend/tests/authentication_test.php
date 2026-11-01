@@ -35,6 +35,8 @@ $insert->execute([1, "test-user", "admin", $testHash]);
 assertTest($status === 200 && isset($response["token"]), "credenciales correctas deben emitir un token");
 $decoded = JWT::decode($response["token"], new Key($testSecret, "HS256"));
 assertTest($decoded->data->username === "test-user", "el token de prueba debe ser válido");
+assertTest(is_int($decoded->iat) && is_int($decoded->exp), "iat y exp deben emitirse como enteros en la raíz del JWT");
+assertTest($decoded->data->role === "admin", "el rol autenticado debe permanecer dentro de data");
 assertTest($decoded->iat > 0 && $decoded->exp - $decoded->iat === DALESKATE_JWT_LIFETIME_SECONDS, "el JWT debe expirar exactamente ocho horas después de emitirse");
 assertTest(validateBearerToken("Bearer " . $response["token"], $testSecret) !== null, "el validador debe aceptar un JWT vigente");
 

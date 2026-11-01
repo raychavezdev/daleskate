@@ -3,6 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AdminEmptyState } from "./AdminSection.jsx";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
 const metricCards = [
   { key: "published", label: "Artículos publicados", note: "En la revista", accent: "border-red-700" },
@@ -35,8 +36,7 @@ const AdminHome = () => {
           fetch(`${API_URL}/api/ads_get.php`),
         ]);
 
-        if (articleResponse.status === 401 || pollResponse.status === 401) {
-          localStorage.removeItem("token");
+        if (clearSessionOnUnauthorizedStatus(articleResponse.status) || clearSessionOnUnauthorizedStatus(pollResponse.status)) {
           navigate("/login");
           return;
         }

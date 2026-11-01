@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ChangePassword = () => {
@@ -28,8 +29,7 @@ const ChangePassword = () => {
           new_password: newPass,
         }),
       });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
+      if (clearSessionOnUnauthorizedStatus(res.status)) {
         navigate("/login", { replace: true });
         return;
       }

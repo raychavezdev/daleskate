@@ -2,6 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { storeSessionToken } from "../admin/sessionToken.js";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -12,6 +13,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    // El tiempo del cliente sirve como origen relativo; la API valida exp con su reloj y la firma.
+    const sessionStartedAt = Date.now();
 
     try {
       const res = await fetch(`${API_URL}/api/auth.php`, {
@@ -22,9 +25,10 @@ const Login = () => {
 
       const data = await res.json();
 
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
+      if (res.ok && data.token && storeSessionToken(data.token, localStorage, sessionStartedAt)) {
         navigate("/admin");
+      } else if (res.ok && data.token) {
+        setError("La sesión recibida no es válida. Intenta iniciar sesión de nuevo.");
       } else {
         setError(data.error || "Credenciales inválidas");
       }

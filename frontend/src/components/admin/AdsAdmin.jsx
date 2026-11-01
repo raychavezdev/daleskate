@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSection, { AdminEmptyState } from "./AdminSection.jsx";
+import { clearSessionOnUnauthorizedStatus } from "./sessionToken.js";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -32,8 +33,7 @@ const AdsAdmin = () => {
       body: formData,
     });
     setLoading(false);
-    if (res.status === 401) {
-      localStorage.removeItem("token");
+    if (clearSessionOnUnauthorizedStatus(res.status)) {
       navigate("/login");
       return;
     }
@@ -56,8 +56,7 @@ const AdsAdmin = () => {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: JSON.stringify({ id }),
     });
-    if (res.status === 401) {
-      localStorage.removeItem("token");
+    if (clearSessionOnUnauthorizedStatus(res.status)) {
       navigate("/login");
       return;
     }
